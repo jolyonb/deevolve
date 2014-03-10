@@ -11,3 +11,12 @@
 *.lai
 *.la
 *.a
+
+# Eclipse metadata
+.metadata
+.cproject
+.project
+
+# twiddles
+*~
+
