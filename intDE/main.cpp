@@ -19,9 +19,10 @@ int main(void) {
 
 	// Set up the equations of motion/model class
 	Model *myModel = new Quintessence();
+//	Model *myModel = new LambdaCDM();
 
 	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init, h (of H_0 = h * 100 km/s/Mpc) and the model
-	Parameters *myParams = new Parameters(0.3, 2.72, 0.01, 1.0e4, 0.7);
+	Parameters *myParams = new Parameters(0.3, 2.72548, 0.01, 1.0e4, 0.7);
 
 	// Load the model and parameters into a class to pass into the integration routine
 	IntParams *myIntParams = new IntParams(*myParams, *myModel);

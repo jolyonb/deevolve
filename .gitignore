@@ -12,10 +12,14 @@
 *.la
 *.a
 
-# Eclipse metadata
+# Compiled program
+intDE/debug/main
+
+# Eclipse stuff
 .metadata
 .cproject
 .project
+.settings
 
 # twiddles
 *~

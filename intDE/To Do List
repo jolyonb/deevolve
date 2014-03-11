@@ -1,23 +1,9 @@
-params.cpp & params.h
-~~~~~~~~~~~~~~~~~~~~~
-Calculate Omega_r from T_gamma
-Write this up in the latex doc
-Calculate rho_c (and figure out some appropriate units!)
-
-
-
 Generic
 ~~~~~~~
-Compare to LambdaCDM
-
-
 Set up a consistency checking class (at least, it can check for ghosts and superluminal sound speeds, as well as phantoms)
 
 
 Make up an output module that converts from dimensionless (conformal) time to conformal time before outputting
 
 
-Implement Jonathan's exponential function
-
-
-Set up github
+Crosscheck with Jonathan's exponential function
