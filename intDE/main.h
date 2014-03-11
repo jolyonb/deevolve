@@ -17,6 +17,7 @@
 #include "intparams.h"
 #include "output.h"
 #include "basicdump.h"
+#include "lambdaCDM.h"
 
 // Function that controls the evolution
 int BeginEvolution(Integrator&, IntParams&, double*, double, double, Output&);

@@ -3,16 +3,27 @@
 // To modify this module to a given quintessence potential, the following two functions must be specified
 // Returns the potential for a given phi (used in calculating energy density and pressure)
 double Quintessence::potential(const double phi){
+
 	// This is just the potential V = m_P^2 H_0^2 phi^2 / 2 (for dimensionless phi)
 	// In terms of the dimensionless potential U, this is U = phi^2 / 2
-	return pow(phi, 2.0) / 2;
+	// return pow(phi, 2.0) / 2;
+
+	// This is an exponential function: V = m_P^2 H_0^2 e^(-lambda phi)
+	const double lambda = 1.0;
+	return exp(- lambda * phi);
 }
 // Returns the derivative of the potential for a given phi (used in calculating the scalar equation of motion)
 double Quintessence::potentialprime(const double phi){
+
 	// This is just the potential V = m_P^2 H_0^2 phi^2 / 2 (for dimensionless phi)
 	// In terms of the dimensionless potential U, this is U = phi^2 / 2
 	// \partial_\phi U = phi, so return phi
-	return phi;
+	// return phi;
+
+	// This is an exponential function: V = m_P^2 H_0^2 e^(-lambda phi)
+	const double lambda = 1.0;
+	return - lambda * exp(- lambda * phi);
+
 }
 
 
@@ -118,7 +129,7 @@ void Quintessence::getstate(const double data[], double time, double info[], Par
 	info[15] = press / energy;
 
 	// \dot{H}
-	info[4] = - params.OmegaM() / 2 / a - params.OmegaR() / a2 - params.OmegaK() - a2 * (3.0 * press + energy);
+	info[4] = - params.OmegaM() / 2 / a - params.OmegaR() / a2 - params.OmegaK() - a2 * (3.0 * press + energy) / 2.0;
 
 	// Omega_matter (present value)
 	info[8] = params.OmegaM() / a / hubble2;

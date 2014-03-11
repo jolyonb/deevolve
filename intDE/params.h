@@ -9,6 +9,8 @@
 #ifndef PARAMS_H_
 #define PARAMS_H_
 
+#include <cmath>
+
 class Parameters {
 	public:
 		Parameters(const double OmegaM, const double Tgamma, const double OmegaK, const double z0, const double h); // Constructor
@@ -21,7 +23,7 @@ class Parameters {
 		inline double h () {return mh;}            // Hubble parameter is h * 100 km/s/Mpc
 		inline double H0 () {return mH0;}          // Hubble parameter today (in s^-1)
 		inline double z0 () {return mz0;}          // Redshift to start the evolution at
-		inline double rhoc () {return mrhoc;}      // Critical energy density (today), in units of ???
+		inline double rhoc () {return mrhoc;}      // Critical energy density (today), in units of eV^4
 
 	private:
 		// Internal storage for values

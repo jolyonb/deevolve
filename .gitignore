@@ -12,10 +12,11 @@
 *.la
 *.a
 
-# Eclipse metadata
+# Eclipse stuff
 .metadata
 .cproject
 .project
+.settings
 
 # twiddles
 *~
