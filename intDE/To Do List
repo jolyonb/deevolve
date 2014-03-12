@@ -1,9 +1,26 @@
 Generic
 ~~~~~~~
-Set up a consistency checking class (at least, it can check for ghosts and superluminal sound speeds, as well as phantoms)
-
-
-Make up an output module that converts from dimensionless (conformal) time to conformal time before outputting
+Set up a consistency checking class (at least, it can check for ghosts and superluminal/negative sound speeds, as well as phantoms)
 
 
 Crosscheck with Jonathan's exponential function
+
+
+Allow model file to print output lines
+
+
+output to files
+
+
+no headings, all data
+
+
+use Friedmann equation as a measure of the error in an evolution
+
+use stackoverflow "C++ check if file exists"
+
+
+
+main.cpp - insert the error report
+
+output - allow other classes to write stuff (insert routines to do so)

@@ -14,6 +14,7 @@
 #include "params.h"
 #include "model.h"
 #include "quintessence.h"
+#include "quintessence2.h"
 #include "intparams.h"
 #include "output.h"
 #include "basicdump.h"

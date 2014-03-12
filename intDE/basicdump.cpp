@@ -28,7 +28,7 @@ void BasicDump::printinfo(const double data[], IntParams &params) {
 void BasicDump::printheading(const double data[], IntParams &params) {
 
 	// Dumping everything. Make nice headers.
-	cout << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q" << endl;
+	cout << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
 
 }
 
@@ -36,7 +36,7 @@ void BasicDump::printheading(const double data[], IntParams &params) {
 void BasicDump::printstep(const double data[], double time, IntParams &params) {
 
 	// An array to hold the status extraction after each step of the integration
-	double status[16];
+	double status[17];
 
 	// Extract the state from the model (not that we presently do anything with it)
 	params.getmodel().getstate(data, time, status, params.getparams());
@@ -58,6 +58,7 @@ void BasicDump::printstep(const double data[], double time, IntParams &params) {
 	   * 13 rho_Q / rho_c
 	   * 14 P_Q / rho_c
 	   * 15 w_Q
+	   * 16 Error
 	 */
 
 	// We are outputting everything here. Intended for dumping to a file and reading in later.
@@ -76,6 +77,7 @@ void BasicDump::printstep(const double data[], double time, IntParams &params) {
 	cout << status[12] << ", ";
 	cout << status[13] << ", ";
 	cout << status[14] << ", ";
-	cout << status[15] << endl;
+	cout << status[15] << ", ";
+	cout << status[16] << endl;
 
 }

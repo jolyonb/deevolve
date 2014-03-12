@@ -18,7 +18,8 @@ int main(void) {
 	Integrator *myIntegrator = new Integrator;
 
 	// Set up the equations of motion/model class
-	Model *myModel = new Quintessence();
+//	Model *myModel = new Quintessence();
+	Model *myModel = new QuintessenceH();
 //	Model *myModel = new LambdaCDM();
 
 	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init, h (of H_0 = h * 100 km/s/Mpc) and the model
@@ -42,11 +43,19 @@ int main(void) {
 	double phi0 = 0.01;
 	double phidot0 = 0.0;
 
-	// The data array stores a, \phi, and \dot{phi} through the evolution
-	double data[3] = { 1.0 / (1.0 + myParams->z0()), phi0, phidot0 };
+	// The data array stores a, \phi, and \dot{phi} through the evolution. The fourth parameter is an initial value of \dot{a}/a,
+	// which may be necessary in some models.
+	double data[4] = { 1.0 / (1.0 + myParams->z0()), phi0, phidot0, 0.0 };
 
 	// Set up the output class
 	Output *myOutput = new BasicDump();
+
+	// Allow the model to initialize itself
+	int initresult = myModel->init(data, starttime, *myParams);
+	if (initresult != 0) {
+		// To do: put an error report in the output here
+		return -1;
+	}
 
 	// Do the evolution!
 	int result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput);
