@@ -11,9 +11,7 @@ Integrator::Integrator() {
 
 	// Initialize GSL
 	step = gsl_odeiv2_step_alloc(Type, numelements);
-//	control = gsl_odeiv2_control_y_new(0.0, 1e-12); // Only care about relative error
-	control = gsl_odeiv2_control_yp_new(0.0, 1e-12); // Only care about relative error
-//	control = gsl_odeiv2_control_standard_new(0.0, 1e-11, 1.0, 1.0); // Only care about relative error
+	control = gsl_odeiv2_control_yp_new(0.0, 1e-12); // Only care about relative error (this is quite a stringent tolerance)
 	evolve = gsl_odeiv2_evolve_alloc(numelements);
 
 	// Set the initial stepsize
