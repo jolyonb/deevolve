@@ -23,6 +23,8 @@ int LambdaCDM::derivatives(const double data[], double derivs[], Parameters &par
 	// The scalar field doesn't exist, so don't include it.
 	derivs[1] = 0;
 	derivs[2] = 0;
+	// Also, we don't need to calculate \dot{H} in this model, as we can solve the Friedman equation analytically
+	derivs[3] = 0;
 
 	return GSL_SUCCESS;
 }
@@ -46,6 +48,7 @@ int LambdaCDM::derivatives(const double data[], double derivs[], Parameters &par
    * 13 rho_Q / rho_c
    * 14 P_Q / rho_c
    * 15 w_Q
+   * 16 Error
 
  */
 void LambdaCDM::getstate(const double data[], double time, double info[], Parameters &params) {
@@ -57,7 +60,7 @@ void LambdaCDM::getstate(const double data[], double time, double info[], Parame
 	double a2 = pow(a, 2.0);
 	double a4 = pow(a, 4.0);
 	// Go and compute the derivatives
-	double derivs[3];
+	double derivs[4];
 	int result = derivatives(data, derivs, params);
 	// Hubble parameter H = \dot{a}/a
 	double hubble = derivs[0] / a;
@@ -97,7 +100,7 @@ void LambdaCDM::getstate(const double data[], double time, double info[], Parame
 	info[15] = press / energy;
 
 	// \dot{H}
-	info[4] = - params.OmegaM() / 2 / a - params.OmegaR() / a2 - params.OmegaK() - a2 * (3.0 * press + energy) / 2.0;
+	info[4] = - params.OmegaM() / 2 / a - params.OmegaR() / a2 - a2 * (3.0 * press + energy) / 2.0;
 
 	// Omega_matter (present value)
 	info[8] = params.OmegaM() / a / hubble2;
@@ -113,6 +116,9 @@ void LambdaCDM::getstate(const double data[], double time, double info[], Parame
 
 	// w_total
 	info[12] = (params.OmegaR() / 3 + a4 * press) / (a * params.OmegaM() + params.OmegaR() + a4 * energy);
+
+	// Error
+	info[16] = 0;
 
 }
 

@@ -1,4 +1,4 @@
-OBJECTS = main.o integrate.o params.o quintessence.o intparams.o basicdump.o lambdaCDM.o
+OBJECTS = main.o integrate.o params.o quintessence.o intparams.o basicdump.o lambdaCDM.o quintessence2.o
 INC = -I/usr/local/include
 LIBS = -L/usr/local/lib -lm -lgsl -lgslcblas
 CC = g++

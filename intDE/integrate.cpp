@@ -4,18 +4,20 @@ Integrator::Integrator() {
 	// Constructor
 
 	// Set the number of elements to be integrated
-	numelements = 3;
+	numelements = 4;
 
 	// Integration method as supplied by GSL
 	const gsl_odeiv2_step_type *Type = gsl_odeiv2_step_rk8pd;
 
 	// Initialize GSL
 	step = gsl_odeiv2_step_alloc(Type, numelements);
-	control = gsl_odeiv2_control_y_new(1e-6, 0.0);
+//	control = gsl_odeiv2_control_y_new(0.0, 1e-12); // Only care about relative error
+	control = gsl_odeiv2_control_yp_new(0.0, 1e-12); // Only care about relative error
+//	control = gsl_odeiv2_control_standard_new(0.0, 1e-11, 1.0, 1.0); // Only care about relative error
 	evolve = gsl_odeiv2_evolve_alloc(numelements);
 
 	// Set the initial stepsize
-	stepsize = 1e-6;
+	stepsize = 1e-4;
 }
 
 Integrator::~Integrator() {
@@ -44,8 +46,8 @@ int Integrator::dointstep(int (*func)(double, const double*, double*, void*), In
 
 	// Update the stepsize according to what GSL thinks will work well, but make sure it doesn't get too big. We want some resolution on our functions!
 	stepsize = stepsizecopy;
-	if (stepsize > 0.05)
-		stepsize = 0.05;
+	if (stepsize > 0.03)
+		stepsize = 0.03;
 
 	// Return the status: should be GSL_SUCCESS if everything worked
 	return status;

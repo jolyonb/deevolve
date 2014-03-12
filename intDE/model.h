@@ -18,8 +18,8 @@
 // Individual models will inherit this class and implement the appropriate functions.
 class Model {
 	public:
-		// The derivatives routine is given the state of the system (a, phi and \dot{\phi}) as well as the parameters of the system,
-		// and returns the derivatives (\dot{a}, \dot{\phi}, \ddot{\phi})
+		// The derivatives routine is given the state of the system (a, phi and \dot{\phi} as well as H in some cases)
+		//  as well as the parameters of the system, and returns the derivatives (\dot{a}, \dot{\phi}, \ddot{\phi} (and \dot{H}, if necessary))
 		virtual int derivatives(const double data[], double derivs[], Parameters &params) = 0;
 		/* The state routine is given the state of the system as well as the parameters of the model,
 		   and returns information in the info array. The return values are as follows:
@@ -40,11 +40,17 @@ class Model {
 		   * 13 rho_Q / rho_c
 		   * 14 P_Q / rho_c
 		   * 15 w_Q
+		   * 16 Error (compared to the constraint of the Friedmann equation)
 
-		   Note that this needs an array of 16 doubles to return these values
+		   Note that this needs an array of 17 doubles to return these values
 
 		 */
 		virtual void getstate(const double data[], double time, double info[], Parameters &params) = 0;
+
+		// A function to allow the model to initialize itself
+		// In particular, this function will have to calculate H from the Friedmann equation as an initial condition
+		// if the model is evolving H.
+		virtual int init(double data[], double time, Parameters &params) {return 0;}
 
 		// The speedofsound2 returns the speed of sound squared, given the state of the system
 		virtual double speedofsound2(const double data[], const double derivs[]) {return 0;}
