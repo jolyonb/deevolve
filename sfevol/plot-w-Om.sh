@@ -14,20 +14,14 @@
 # To run for first time, need to change permissions
 #  chmod +x plot-w-Om.sh
 #
-# To run normally, call with fileID
 # To run normally, call with dir & fileID as arguments
 #   (note: dont need forward-slash on dir argument)
 #
-#  ./plot-w-Om.sh fileID
 #  ./plot-w-Om.sh DIR FILEID
 #
 # NOTES
 #
-# This assumes the output directory is "conf/"
-#  - this can be modified in "outputfig" below
-#
 # The outputted figure will be named
-# "conf/fileID_plot.eps"
 # "DIR/FILEID_plot.eps"
 #  - i.e. in same dir, with same fileID prefix
 #
@@ -92,8 +86,6 @@ plot inputdata u a_loc:3  w l lw 2 notitle
 unset log
 set format y "%2.1f"
 set log x
-
-
 
 # Plot Omega_i(a)
 

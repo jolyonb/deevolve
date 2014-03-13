@@ -1,3 +1,4 @@
+
 // checkpathology.cpp
 
 // This checks to see if cs2 < 0 or cs2 > 1.

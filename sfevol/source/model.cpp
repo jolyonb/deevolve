@@ -1,3 +1,4 @@
+
 // model.cpp
 
 // This file contains everything to do with the scalar field model.
