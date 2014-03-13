@@ -175,7 +175,7 @@ double Quintessence::pressure(const double data[]){
 }
 
 // The speedofsound2 returns the speed of sound squared, given the state of the system
-double Quintessence::speedofsound2(const double data[], const double derivs[]) {
+double Quintessence::speedofsound2(const double data[]) {
 	// The speed of sound in quintessence is always 1.
 	return 1;
 }
@@ -186,11 +186,18 @@ bool Quintessence::implementsSOS() {
 
 // The isghost function is given the state of the system (and some derivatives, because those might be helpful)
 // and returns whether or not the theory has become ghostlike
-bool Quintessence::isghost(const double data[], const double derivs[]) {
+bool Quintessence::isghost(const double data[]) {
 	// Quintessence is never ghost-like
 	return false;
 }
-// The implementsghost function returns whether or not a class acutlaly implements the isghost function
+// The implementsghost function returns whether or not a class actually implements the isghost function
 bool Quintessence::implementsghost() {
 	return true;
+}
+
+// Return the description of the model
+std::string Quintessence::description() {
+	std::stringstream output;
+	output << "Running Quintessence model." << std::endl;
+	return output.str();
 }

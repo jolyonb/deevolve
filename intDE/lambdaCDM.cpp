@@ -132,3 +132,10 @@ double LambdaCDM::pressure(const double data[]){
 	// Return -Omega_Lambda
 	return -0.7;
 }
+
+// Return the description of the model
+std::string LambdaCDM::description() {
+	std::stringstream output;
+	output << "Running LambdaCDM model." << std::endl;
+	return output.str();
+}

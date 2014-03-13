@@ -12,6 +12,10 @@
 #include "model.h"
 #include "integrate.h"
 #include <cmath>
+// stringstreams
+#include <iostream>
+#include <string>
+#include <sstream>
 
 class LambdaCDM : public Model {
 
@@ -19,6 +23,7 @@ class LambdaCDM : public Model {
 		// Here are the functions that are overridden by the quintessence class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		void getstate(const double data[], double, double info[], Parameters &params);
+		std::string description();
 
 	private:
 		// Here are some internal functions. They're pretty self-explanatory.

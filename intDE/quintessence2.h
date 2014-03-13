@@ -15,6 +15,10 @@
 #include "model.h"
 #include "integrate.h"
 #include <cmath>
+// stringstreams
+#include <iostream>
+#include <string>
+#include <sstream>
 
 class QuintessenceH : public Model {
 
@@ -23,10 +27,11 @@ class QuintessenceH : public Model {
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		void getstate(const double data[], double, double info[], Parameters &params);
 		int init(double data[], double time, Parameters &params);
-		double speedofsound2(const double data[], const double derivs[]);
+		double speedofsound2(const double data[]);
 		bool implementsSOS();
-		bool isghost(const double data[], const double derivs[]);
+		bool isghost(const double data[]);
 		bool implementsghost();
+		std::string description();
 
 	private:
 		// Here are some internal functions. They're pretty self-explanatory.
