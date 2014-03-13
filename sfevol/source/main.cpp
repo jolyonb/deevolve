@@ -13,13 +13,13 @@
 
 #include "main.h"
 
-int main(void){
+int main(int argc, char* argv[]){
 
-    int     totID=4;        // Total number of fields
-    int     ndata=12;       // number of items dumped into file
-    int     nruninfo=9;     // Number of items constituting information about this run
-    int     nlagparams=3;
-    int     nlagderivs=5;
+    int     totID = 4;        // Total number of fields
+    int     ndata = 12;       // number of items dumped into file
+    int     nruninfo = 9;     // Number of items constituting information about this run
+    int     nlagparams = 3;   // Number of parameters used to parameterize Lagrangian
+    int     nlagderivs = 5;   // Number of "derivatives of lagrangian" to be stored
     
     // Array for fields which are updated
     double  *fld=new double[totID];
@@ -40,83 +40,83 @@ int main(void){
     double  tau,a2,H2;
     double  rhoDE,PDE,wde,wtot,cs2;
     int     flag=0;
-    
+    string  st2;
     // BEGIN: user input
+
     
-    // (1) Numerics parameters
-    double  dt=1E-3;
-    int     ttot=1.0E9;
-    int     filefreq=1;
-    char    outloc[] = "conf/";     // output location
-    char    runID[] = "ID_22";      // run ID
-    int     verbosity=1;
-    int     checkpath=1;             // = 1 if check cs2 for pathology
+    // Read the params file.
+    //  can be specified at runtime via
+    //      ./sfevol params1.ini
+    //  Default is just params.ini
     
-    // (2) Theory choices
+    IniReader inifile;
+    if (argc > 1)
+        inifile.read(argv[1]);
+    else
+        inifile.read("params.ini");
     
-    //  (2a) Model ID-number
-    // 0 = phi^2 quintessence
-    // 1 = exponential quintessence,
-    // 2 = power-law k-essence
-    int     modID=0;
+    // Read in parameter file (the second entry is a default value if nothing found)
+    string  runDIR=inifile.getiniString("runDIR","output");
+    string  runIDs=inifile.getiniString("runID","0001");
     
-    //  (2b) Potential parameters
+    int     modID=int(inifile.getiniDouble("ModelType",1));
+    double  potparam1=inifile.getiniDouble("potparam1",1.0);
+    double  potparam2=inifile.getiniDouble("potparam2",1.0);
+    double  potparam3=inifile.getiniDouble("potparam3",1.0);
     
-    // power in potential: "lambda"
-    double  potparam1=1.0;
-    // power of kinetic term: "n"
-    //  [ only used if modID > 1 ]
-    double  potparam2=1.0;
-    // xi
-    //  [ only used if modID > 2 ]
-    double  potparam3=1.0;
-    
-    lagparams[0]=potparam1;
-    lagparams[1]=potparam2;
-    lagparams[2]=potparam3;
-    
-    // (3) Initial conditions:
-    double  z_init=1.0E4;
-    double  phi_init=5.0;
-    double  phidot_init=10.0;
-    
-    // (4) Cosmological parameters
-    double  OmegaR0=1E-4;
-    double  OmegaM0=0.3;
-    
-    // END: user input
+    double  z_init=inifile.getiniDouble("z_init",1E4);
+    double  phi_init=inifile.getiniDouble("phi_init",2.0);
+    double  phidot_init=inifile.getiniDouble("phidot_init",10.0);
+    double  OmegaR0=inifile.getiniDouble("OmegaR0",1E-4);
+    double  OmegaM0=inifile.getiniDouble("OmegaM0",0.3);
+    int     checkpath=int(inifile.getiniDouble("CheckPathology",1));
+
+    double  dt=inifile.getiniDouble("TimeStepSize",1E-3);
+    int     ttot=int(inifile.getiniDouble("NumTimeSteps",1E9));
+    int     verbosity=int(inifile.getiniDouble("Verbosity",1));
+    int     filefreq=int(inifile.getiniDouble("FileFreq",1));
+    string  dsuff=inifile.getiniString("MainDataSuffix","_out.dat");
+    string  lsuff=inifile.getiniString("LogFileSuffix","_log.dat");
+    string  psuff=inifile.getiniString("ParamsFileSuffix","_params.dat");
     
     // Construct a_init from z_init
-    double  a_init=1.0/(1.0+z_init);
+    double  a_init = 1.0 / ( 1.0 + z_init );
 
     // Construct H_init from Friedmann equation
     // Do this for t=0 only (this happens in main loop)
-    double  H_init=0.0;
+    double  H_init = 0.0;
     
-    fld[0]=a_init;
-    fld[1]=H_init;
-    fld[2]=phi_init;
-    fld[3]=phidot_init;
+    // Start to populate arrays
+    
+    fld[0] = a_init;
+    fld[1] = H_init;
+    fld[2] = phi_init;
+    fld[3] = phidot_init;
+    
+    lagparams[0] = potparam1;
+    lagparams[1] = potparam2;
+    lagparams[2] = potparam3;
    
-    runinfo[0]=modID;
-    runinfo[1]=potparam1;
-    runinfo[2]=potparam2;
-    runinfo[3]=potparam3;
-    runinfo[4]=z_init;
-    runinfo[5]=phi_init;
-    runinfo[6]=phidot_init;
-    runinfo[7]=OmegaR0;
-    runinfo[8]=OmegaM0;
+    runinfo[0] = modID;
+    runinfo[1] = potparam1;
+    runinfo[2] = potparam2;
+    runinfo[3] = potparam3;
+    runinfo[4] = z_init;
+    runinfo[5] = phi_init;
+    runinfo[6] =  phidot_init;
+    runinfo[7] = OmegaR0;
+    runinfo[8] = OmegaM0;
     
     // Print run info to screen
     if(verbosity > 0){
         cout << endl;
-        cout << "-------------------------" << endl;
+        cout << "-----------------------------------------------" << endl;
         cout << "FRW scalar field evolution: conformal time" << endl;
         cout << "J Pearson, Durham, March 2014" << endl;
-        cout << "-------------------------" << endl;
-        cout << "Run dir: " << outloc << endl;
-        cout << "Run ID: " << runID << endl;
+        cout << "-----------------------------------------------" << endl;
+        
+        cout << "Run dir: " << runDIR << endl;
+        cout << "Run ID: " << runIDs << endl;
         cout << endl;
         cout << "COSMOLOGICAL PARAMETERS: " << endl;
         cout << ":: OmegaM_0 = " << runinfo[8] << endl;
@@ -155,26 +155,22 @@ int main(void){
         }
     }
 
-    
     // Open paramsout data file
     ofstream paramout;
-    strcpy(outlocedit,outloc);
-    strcat(outlocedit,runID);
-    strcat(outlocedit,"_params.dat");
-    paramout.open(outlocedit);
+    st2=runDIR+runIDs+psuff;
+    paramout.open(st2);
+    
     for(int ID=0;ID<nruninfo;ID++){paramout << runinfo[ID] << endl;}
     paramout.close();
 
     // Open log data file
     ofstream logout;
-    strcpy(outlocedit,outloc);
-    strcat(outlocedit,runID);
-    strcat(outlocedit,"_log.dat");
-    logout.open(outlocedit);
+    st2=runDIR+runIDs+lsuff;
+    logout.open(st2);
     
     logout << endl;
-    logout << "Run location: " << outloc << endl;
-    logout << "Run ID: " << runID << endl;
+    logout << "Run location: " << runDIR << endl;
+    logout << "Run ID: " << runIDs << endl;
     logout << endl;
     logout << "Model info: " << endl;
     logout << "modID = " << runinfo[0];
@@ -215,11 +211,9 @@ int main(void){
     delete runinfo;
     
     // Open up output data file
-    ofstream dataout;
-    strcpy(outlocedit,outloc);
-    strcat(outlocedit,runID);
-	strcat(outlocedit,"_out.dat");
-	dataout.open(outlocedit);
+    ofstream dataout;  
+    st2=runDIR+runIDs+dsuff;
+	dataout.open(st2);
     
     // Run over time-steps
     // Terminate if a > 1 (sensible...?)
@@ -235,17 +229,16 @@ int main(void){
         tau=t*dt;
         
         // Extract fields for ease in the code
-        a=fld[0];
-        H=fld[1];
-        phi=fld[2];
-        phidot=fld[3];
+        a = fld[0];
+        H = fld[1];
+        phi = fld[2];
+        phidot = fld[3];
         
         // Construct useful auxiliary variables
         a2 = pow( a , 2.0 );
         H2 = pow( H , 2.0 );
 
-        
-        // Model specifics
+        // Model specifics: returns "lagderivs" containing, e.g., {L, LX,...}
         GetLagDerivs(fld,lagparams,modID,lagderivs);
         
         // Get rhoDE/rhoc
@@ -281,13 +274,12 @@ int main(void){
         // Write to file every filefreq-timesteps
         if(t%filefreq==0 || t==ttot || t==0){
             
-            // Construct hydrodynamic quantities
-            //  and \Omega_X
+            // Construct \Omega_X
             
             OmegaR = OmegaR0 / a2 / H2;
             OmegaDE = a2 * rhoDE / H2;
             OmegaM = OmegaM0 / a / H2;
-            OmegaM=1.0-OmegaR-OmegaDE;
+            OmegaM = 1.0 - OmegaR - OmegaDE;
             
             if( OmegaM < 0 || OmegaR < 0 || OmegaDE < 0 ){
                 flag=1;
@@ -299,6 +291,7 @@ int main(void){
                 cout << "timestep number = " << t << endl;
                 cout << "a = " << a << endl;
             }
+            
             // Construct equations of state
             wtot = ( OmegaR0 / 3.0 + pow( a2, 2.0 ) * PDE ) / ( a * OmegaM0 + OmegaR0 + pow( a2 , 2.0 ) * rhoDE );
             

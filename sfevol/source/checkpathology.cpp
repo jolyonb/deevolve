@@ -3,7 +3,7 @@
 // This checks to see if cs2 < 0 or cs2 > 1.
 //  The flag gets altered accordingly.
 
-#include "main.h"
+#include "checkpathology.h"
 
 
 void CheckPathology(double *lagderivs, int flag){
