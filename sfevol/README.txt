@@ -20,7 +20,7 @@ If a parameter isnt specified, the defaults will be used (see initalise.cpp)
 
 PLOT OUTPUT
 ----------------
-To plot output
+To plot output with gnuplot.
 First time:
 	
 	> chmod +x plot-w-Om.sh
