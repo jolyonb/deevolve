@@ -1,6 +1,6 @@
-OBJECTS = main.o integrate.o params.o quintessence.o intparams.o basicdump.o lambdaCDM.o quintessence2.o
+OBJECTS = main.o integrate.o quintessence.o basicdump.o lambdaCDM.o quintessence2.o simplecheck.o
 INC = -I/usr/local/include
-LIBS = -L/usr/local/lib -lm -lgsl -lgslcblas
+LIBS = -L/usr/local/lib -lm -lgsl -lgslcblas -L/usr/local/boost -lboost_filesystem -lboost_system -lboost_timer
 CC = g++
 
 all: main
@@ -9,8 +9,8 @@ all: main
 	$(CC) -c $(INC) $< -o $@
 
 main: $(OBJECTS)
-	$(CC) $(OBJECTS) $(LIBS) -o $@
+	$(CC) $(OBJECTS) $(LIBS) -o ../$@
 
 clean:
-	-rm -f $(OBJECTS) main
+	-rm -f $(OBJECTS) ../main
 

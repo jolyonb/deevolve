@@ -16,12 +16,27 @@
 class IntParams {
 
 	public:
-		// Constructor and destructor
-		IntParams(Parameters&, Model&);
-		~IntParams();
+		// Constructor. Point the class members to the two objects that were passed in.
+		IntParams(Parameters &params, Model &model){
+			myParams = &params;
+			myModel = &model;
+		}
+
+		// Destructor. Remove references to objects that now no longer need to be pointed to.
+		~IntParams() {
+			myParams = NULL;
+			myModel = NULL;
+		}
+
 		// Getters for the two stored classes
-		Model &getmodel();
-		Parameters &getparams();
+		// Return the model class that was stored
+		Model &getmodel() {
+			return *myModel;
+		}
+		// Return the parameters class that was stored
+		Parameters &getparams() {
+			return *myParams;
+		}
 
 	private:
 		// Internal storage for the two classes

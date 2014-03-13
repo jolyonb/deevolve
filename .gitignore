@@ -13,7 +13,7 @@
 *.a
 
 # Compiled program
-intDE/debug/main
+intDE/main
 
 # Eclipse stuff
 .metadata
@@ -24,3 +24,5 @@ intDE/debug/main
 # twiddles
 *~
 
+# anything in the log directory
+intDE/logs/

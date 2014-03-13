@@ -1,26 +1,20 @@
 #include "basicdump.h"
 
-// Use the std namespace for the purposes of outputting stuff to screen
-using namespace std;
-
 // Function to print data before the run starts
 void BasicDump::printinfo(const double data[], IntParams &params) {
 
 	// Require scientific notation, 15 digits
-	cout.precision(15);
-	cout << scientific;
+	myLog->precision(15);
 
 	// Print the header
-	cout << "Beginning run." << endl;
-	cout << "Parameters:" << endl;
-	cout << "Omega_m: \t" << params.getparams().OmegaM() << endl;
-	cout << "Omega_k: \t" << params.getparams().OmegaK() << endl;
-	cout << "T_gamma: \t" << params.getparams().Tgamma() << endl;
-	cout << "Omega_r: \t" << params.getparams().OmegaR() << endl;
-	cout << "h: \t" << params.getparams().h() << endl;
-	cout << "z_init: \t" << params.getparams().z0() << endl;
-	cout << "rho_c: \t" << params.getparams().rhoc() << endl;
-	cout << endl;
+	cout << "Beginning evolution" << endl;
+	*myLog << "Omega_m: \t" << params.getparams().OmegaM() << endl;
+	*myLog << "Omega_k: \t" << params.getparams().OmegaK() << endl;
+	*myLog << "T_gamma: \t" << params.getparams().Tgamma() << endl;
+	*myLog << "Omega_r: \t" << params.getparams().OmegaR() << endl;
+	*myLog << "h: \t" << params.getparams().h() << endl;
+	*myLog << "z_init: \t" << params.getparams().z0() << endl;
+	*myLog << "rho_c: \t" << params.getparams().rhoc() << endl << endl;
 
 }
 
@@ -28,18 +22,20 @@ void BasicDump::printinfo(const double data[], IntParams &params) {
 void BasicDump::printheading(const double data[], IntParams &params) {
 
 	// Dumping everything. Make nice headers.
-	cout << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
+	//*myData << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
+	*myLog << "Columns in data file are as follows."
+		   << endl
+		   << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error"
+		   << endl << endl;
+
+	// Set up the output form
+	*myData << scientific;
+	myData->precision(15);
 
 }
 
 // Function to print information after each timestep
-void BasicDump::printstep(const double data[], double time, IntParams &params) {
-
-	// An array to hold the status extraction after each step of the integration
-	double status[17];
-
-	// Extract the state from the model (not that we presently do anything with it)
-	params.getmodel().getstate(data, time, status, params.getparams());
+void BasicDump::printstep(const double data[], double time, IntParams &params, double status[]) {
 
 	/* Just as a reminder...
 	   * 0 time
@@ -61,23 +57,59 @@ void BasicDump::printstep(const double data[], double time, IntParams &params) {
 	   * 16 Error
 	 */
 
-	// We are outputting everything here. Intended for dumping to a file and reading in later.
-	cout << status[0] << ", ";
-	cout << status[1] << ", ";
-	cout << status[2] << ", ";
-	cout << status[3] << ", ";
-	cout << status[4] << ", ";
-	cout << status[5] << ", ";
-	cout << status[6] << ", ";
-	cout << status[7] << ", ";
-	cout << status[8] << ", ";
-	cout << status[9] << ", ";
-	cout << status[10] << ", ";
-	cout << status[11] << ", ";
-	cout << status[12] << ", ";
-	cout << status[13] << ", ";
-	cout << status[14] << ", ";
-	cout << status[15] << ", ";
-	cout << status[16] << endl;
+	// We are just dumping everything here, except for consistency flags
+	for (int i = 0; i < 16; i++)
+		*myData << status[i] << ", ";
+	*myData << status[16] << endl;
 
+}
+
+// Constructor
+BasicDump::BasicDump(const std::string &filename) {
+
+	// Give a message about the output filename
+	cout << "Outputting to " << filename << endl;
+
+	// Construct filenames
+	string logfile = filename + ".log";
+	string datfile = filename + ".dat";
+
+	// Open the log files
+	myLog = new ofstream(logfile.c_str());
+	myData = new ofstream(datfile.c_str());
+
+}
+
+// Destructor
+BasicDump::~BasicDump() {
+
+	// Close the log files...
+	myLog->close();
+	myData->close();
+
+	// ... and release memory
+	delete myLog;
+	delete myData;
+
+}
+
+// Did the files open correctly?
+bool BasicDump::filesready() {
+
+	if (myLog->is_open() && myData->is_open())
+		return true;
+	else
+		return false;
+
+}
+
+// Print a "We're done!" message
+void BasicDump::printfinish(const double time) {
+	*myLog << setprecision(4) << "Evolution complete in " << time << " milliseconds." << endl;
+	cout << "Evolution complete" << endl;
+}
+
+// Print a line to the log file
+void BasicDump::printlog(const std::string &output) {
+	*myLog << output << endl;
 }

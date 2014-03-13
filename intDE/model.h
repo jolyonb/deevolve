@@ -13,6 +13,7 @@
 #define MODEL_H_
 
 #include "params.h"
+#include <string>
 
 // This defines the Model abstract class.
 // Individual models will inherit this class and implement the appropriate functions.
@@ -53,18 +54,22 @@ class Model {
 		virtual int init(double data[], double time, Parameters &params) {return 0;}
 
 		// The speedofsound2 returns the speed of sound squared, given the state of the system
-		virtual double speedofsound2(const double data[], const double derivs[]) {return 0;}
+		virtual double speedofsound2(const double data[]) {return 0;}
 		// The implementsSOS function returns whether or not a class actually implements the speedofsound2 function
 		virtual bool implementsSOS() {return false;}
 
-		// The isghost function is given the state of the system (and some derivatives, because those might be helpful)
+		// The isghost function is given the state of the system
 		// and returns whether or not the theory has become ghostlike
-		virtual bool isghost(const double data[], const double derivs[]) {return false;}
-		// The implementsghost function returns whether or not a class acutlaly implements the isghost function
+		virtual bool isghost(const double data[]) {return false;}
+		// The implementsghost function returns whether or not a class actually implements the isghost function
 		virtual bool implementsghost() {return false;}
 
 		// Virtual destructor
 		virtual ~Model() {return;}
+
+		// Function to return a description of the model and the parameters its using.
+		// Will be outputted to the log file.
+		virtual std::string description() {return "";}
 
 };
 
