@@ -10,12 +10,12 @@ void CheckPathology(double *lagderivs, int flag){
 
     double cs2 = GetSpeedOfSound(lagderivs);
     
-    if(cs2<0){
-        flag=2;
+    if( cs2 < 0 ){
+        flag = 2;
         cout << "Perturbations unstable: cs2 = " << cs2 << endl;
     }
-    if(cs2>1){
-        flag=3;
+    if( cs2 > 1 ){
+        flag = 3;
         cout << "Superluminal propagation: cs2 = " << cs2 << endl;
     }
     
