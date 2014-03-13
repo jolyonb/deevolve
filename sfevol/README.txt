@@ -13,7 +13,15 @@ First time:
 > chmod +x plot-w-Om.sh
 
 Every subsequent time
-> ./plot-w-Om.sh FILEID
+> ./plot-w-Om.sh DIR FILEID
 
-where FILEID is the field ID defined in main.cpp. The plot script outputs to "conf/" by default.
+
+Installing boost on MacOS
+- MacPorts
+sudo port install boost
+(will probably need 
+cairomm
+pix-buf2
+poppler
+.. install each via sudo port install X)
 

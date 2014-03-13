@@ -34,7 +34,7 @@
 // INPUT:   fld, lagderivs
 // OUTPUT:  double, phidotdot
 
-#include "main.h"
+#include "model.h"
 
 void GetLagDerivs(double *fld, double *lagparams, int modID, double *lagderivs){
     
