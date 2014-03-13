@@ -20,15 +20,17 @@
 class LambdaCDM : public Model {
 
 	public:
-		// Here are the functions that are overridden by the quintessence class
+		// Here are the base functions that are overridden by this class
 		int derivatives(const double data[], double derivs[], Parameters &params);
-		void getstate(const double data[], double, double info[], Parameters &params);
 		std::string description();
+		int init(double data[], double time, Parameters &params, IniReader &init);
 
 	private:
-		// Here are some internal functions. They're pretty self-explanatory.
-		double pressure(const double data[]);
+		// Here are some overridden internal functions. They're pretty self-explanatory.
 		double energydensity(const double data[]);
+		double pressure(const double data[], const double hdot);
+		// Variable to store Omega_Lambda
+		double OmegaLambda;
 };
 
 #endif /* LAMBDACDM_H_ */

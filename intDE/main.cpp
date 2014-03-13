@@ -28,8 +28,7 @@ int main(int argc, char* argv[]) {
 	Integrator *myIntegrator = new Integrator;
 
 	// Set up the equations of motion/model class
-//	Model *myModel = new Quintessence();
-	Model *myModel = new QuintessenceH();
+	Model *myModel = new Quintessence();
 //	Model *myModel = new LambdaCDM();
 
 	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init, h (of H_0 = h * 100 km/s/Mpc) and the model
@@ -77,7 +76,7 @@ int main(int argc, char* argv[]) {
 	Consistency *myChecker = new SimpleCheck();
 
 	// Allow the model to initialize itself
-	int initresult = myModel->init(data, starttime, *myParams);
+	int initresult = myModel->init(data, starttime, *myParams, inifile);
 	if (initresult != 0) {
 		cerr << "Unable to initialize model." << endl;
 		return -1;

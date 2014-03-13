@@ -26,7 +26,7 @@ class IniReader {
 
 			// If no params.ini file exists, use default parameters
 			if (!boost::filesystem::exists(filename)) {
-				cout << "Error: " << filename << " does not exist. Using default parameters." << endl;
+				cout << "Warning: " << filename << " does not exist. Using default parameters." << endl;
 			} else {
 				ini_parser::read_ini(filename, inifile);
 			}
@@ -50,6 +50,7 @@ class IniReader {
 				catch (...){
 					// Likely got here because that section doesn't exist
 					// Just use the default
+					return def;
 				}
 			}
 
@@ -73,6 +74,7 @@ class IniReader {
 				catch (...){
 					// Likely got here because that section doesn't exist
 					// Just use the default
+					return def;
 				}
 			}
 
@@ -96,6 +98,7 @@ class IniReader {
 				catch (...){
 					// Likely got here because that section doesn't exist
 					// Just use the default
+					return def;
 				}
 			}
 
@@ -120,6 +123,7 @@ class IniReader {
 				catch (...){
 					// Likely got here because that section doesn't exist
 					// Just use the default
+					return def;
 				}
 			}
 
