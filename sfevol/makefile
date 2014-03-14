@@ -1,5 +1,5 @@
-OBJECTS = main.o model.o checkpathology.o
-INC = -I/usr/local/include
+OBJECTS = main.o model.o checkpathology.o write.o evolve.o initialise.o
+INC = -Wall -I/usr/local/include
 LIBS = -L/usr/local/lib -lm -lgsl -lgslcblas -L/usr/local/boost -lboost_filesystem -lboost_system -lboost_timer
 CC = g++
 
