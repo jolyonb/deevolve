@@ -2,4 +2,10 @@ Generic
 ~~~~~~~
 Crosscheck with Jonathan's exponential function
 
-make sure to only run to a = 1
+
+Models:
+
+Do constant w dark energy
+Add three options to quintessence model; mass, exponential potential, user defined
+Do m^2 + lambda \phi^4 quintessence
+k-essence

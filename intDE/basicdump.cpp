@@ -19,7 +19,7 @@ void BasicDump::printinfo(const double data[], IntParams &params) {
 }
 
 // Function to print a header before output starts (e.g., column headings)
-void BasicDump::printheading(const double data[], IntParams &params) {
+void BasicDump::printheading() {
 
 	// Dumping everything. Make nice headers.
 	//*myData << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
@@ -35,27 +35,7 @@ void BasicDump::printheading(const double data[], IntParams &params) {
 }
 
 // Function to print information after each timestep
-void BasicDump::printstep(const double data[], double time, IntParams &params, double status[]) {
-
-	/* Just as a reminder...
-	   * 0 time
-	   * 1 a
-	   * 2 Redshift
-	   * 3 H = \dot{a}/a
-	   * 4 \dot{H}
-	   * 5 phi
-	   * 6 \dot{phi}
-	   * 7 \ddot{phi}
-	   * 8 Omega_matter (present value)
-	   * 9 Omega_radiation (present value)
-	   * 10 Omega_k (present value)
-	   * 11 Omega_Q (present value)
-	   * 12 w_total
-	   * 13 rho_Q / rho_c
-	   * 14 P_Q / rho_c
-	   * 15 w_Q
-	   * 16 Error
-	 */
+void BasicDump::printstep(const double data[], const double time, const IntParams &params, const double status[]) {
 
 	// We are just dumping everything here, except for consistency flags
 	for (int i = 0; i < 16; i++)
@@ -106,7 +86,7 @@ bool BasicDump::filesready() {
 // Print a "We're done!" message
 void BasicDump::printfinish(const double time) {
 	*myLog << setprecision(4) << "Evolution complete in " << time << " milliseconds." << endl;
-	cout << "Evolution complete" << endl;
+	cout << setprecision(4) << "Evolution complete in " << time << " milliseconds." << endl;
 }
 
 // Print a line to the log file

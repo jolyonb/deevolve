@@ -25,7 +25,24 @@ class Integrator {
 		~Integrator(); // Destructor
 
 		// Routine that actually does the integration
-		int dointstep(int (*func)(double, const double*, double*, void*), IntParams&, double*, double&, double);
+		int dointstep(int (*func)(double, const double*, double*, void*), IntParams&, double*, double&, const double);
+
+		// Just a setter and getter for stepsize
+		inline double getstepsize() const { return stepsize; }
+		void setstepsize(const double newsize) {
+			// Do some simple error checking
+			if (newsize <= 0)
+				return;
+			stepsize = newsize;
+			if (stepsize < minstepsize())
+				stepsize = minstepsize();
+			if (stepsize > maxstepsize())
+				stepsize = maxstepsize();
+		}
+
+		// For information
+		inline double maxstepsize() { return 0.03; }
+		inline double minstepsize() { return 1e-7; }
 
 	private:
 		// These are initialized in the constructor, and released in the destructor

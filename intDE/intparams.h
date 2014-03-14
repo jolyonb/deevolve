@@ -28,7 +28,7 @@ class IntParams {
 			myModel = NULL;
 		}
 
-		// Getters for the two stored classes
+		// Getters for the stored classes
 		// Return the model class that was stored
 		Model &getmodel() {
 			return *myModel;
@@ -39,7 +39,7 @@ class IntParams {
 		}
 
 	private:
-		// Internal storage for the two classes
+		// Internal storage for the classes
 		Model *myModel;
 		Parameters *myParams;
 

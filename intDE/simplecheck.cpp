@@ -3,7 +3,7 @@
 using namespace std;
 
 // Checks the state of the system after every timestep
-void SimpleCheck::checkstate (double data[], double time, IntParams &params, Output &output, double status[]){
+void SimpleCheck::checkstate (const double data[], const double time, IntParams &params, Output &output, const double status[]){
 	// We want to check the following conditions:
 	// Error in Friedmann equation sufficiently small
 	// Equation of state is not phantom
@@ -50,7 +50,7 @@ void SimpleCheck::checkstate (double data[], double time, IntParams &params, Out
 
 }
 
-void SimpleCheck::checkfinal (double data[], double time, IntParams &params, Output &output, double status[]){
+void SimpleCheck::checkfinal (const double data[], const double time, IntParams &params, Output &output, const double status[]){
 	// We want to check the following conditions:
 	// Equation of state of dark energy is very close to -1
 	// Hubble parameter is close to the measured value

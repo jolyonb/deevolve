@@ -6,6 +6,13 @@
  *
  * For library dependencies, see main.h
  *
+ * For info on rameters, see params.ini
+ *
+ * Most initialization (and memory release) is handled in the "main" routine.
+ * All integration is handled in the "BeginEvolution" routine.
+ * intfunc is a helper function for integration.
+ * getfilename is a helper function for creating log files.
+ *
  * Jolyon Bloomfield, March 2014
  *
  */
@@ -15,6 +22,9 @@
 
 // Our program entry point
 int main(int argc, char* argv[]) {
+
+	// Just a number for return values
+	int result;
 
 	// Read the params.ini file
 	// If there is a command line argument, assume that it is a different file than params.ini
@@ -27,42 +37,40 @@ int main(int argc, char* argv[]) {
 	// Set up the integrator
 	Integrator *myIntegrator = new Integrator;
 
-	// Set up the equations of motion/model class
-//	Model *myModel = new Quintessence();
-	Model *myModel = new QuintessenceH();
-//	Model *myModel = new LambdaCDM();
+	// Set up the model class
+	Model *myModel;
+	std::string parsestring = inifile.getiniString("model", "LambdaCDM", "Cosmology");
+	if (parsestring == "Quintessence")
+		myModel = new Quintessence();
+	else
+		myModel = new LambdaCDM();    // LambdaCDM is the default
 
-	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init, h (of H_0 = h * 100 km/s/Mpc) and the model
-	Parameters *myParams = new Parameters(inifile.getiniDouble("Omegam", 0.3, "general"),
-			                              inifile.getiniDouble("Tgamma", 2.72548, "general"), 0.01, 1.0e4, 0.7);
+	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init and h (of H_0 = h * 100 km/s/Mpc)
+	Parameters *myParams = new Parameters(inifile.getiniDouble("Omegam", 0.3, "Cosmology"),
+			                              inifile.getiniDouble("Tgamma", 2.72548, "Cosmology"),
+			                              inifile.getiniDouble("Omegak", 0.01, "Cosmology"),
+			                              inifile.getiniDouble("zInit", 1.0e4, "Cosmology"),
+			                              inifile.getiniDouble("Hubbleh", 0.7, "Cosmology"));
 
 	// Load the model and parameters into a class to pass into the integration routine
 	IntParams *myIntParams = new IntParams(*myParams, *myModel);
 
-	// Set up the initial conditions
-	// We use conformal time for our time coordinate. To make things easier, we start at tau = 0.
-	double starttime = 0.0;
-	// We don't want to integrate forever; specify an endtime in conformal time. I've chosen 100 here; this should
-	// be chosen to correspond to about twice as long as you'd except the integration to take.
-	// Note that we'll actually be checking to stop integration when the energy fraction of matter is roughly correct (a >= 1)
-	double endtime = 10.0;
-	// The initial conditions is specified by values for the initial a, \phi, and \dot{\phi}
-	// where the overdot is a derivative with respect to conformal time.
-	// Rather than setting a, it's simpler to set a redshift to begin at, and compute a from there, noting that 1 + z = a_{today}/a
-	// and a_{today} = 1 by choice. This choice is specified in myParams.
-	// \phi and \dot{\phi} will need to be set based on the model
-	double phi0 = 0.01;
-	double phidot0 = 0.0;
+	// Set up more initial conditions
+	double starttime = inifile.getiniDouble("starttime", 0.0, "Function");
+	double endtime = starttime + inifile.getiniDouble("maxtime", 10.0, "Function");
+	double phi0 = inifile.getiniDouble("phi0", 0.01, "Cosmology");
+	double phidot0 = inifile.getiniDouble("phidot0", 0.0, "Cosmology");;
 
-	// The data array stores a, \phi, and \dot{phi} through the evolution. The fourth parameter is an initial value of \dot{a}/a,
-	// which may be necessary in some models.
+	// The data array stores a, \phi, \dot{phi} and H through the evolution
+	// H is calculated in the initialization of the model
+	// The initial value of a is extracted from the starting redshift
 	double data[4] = { 1.0 / (1.0 + myParams->z0()), phi0, phidot0, 0.0 };
 
 	// Set up the filenames to output
-	string outputdir = "logs";
-	string basename = "run";
+	string outputdir = inifile.getiniString("logdir", "logs", "Function");
+	string basename = inifile.getiniString("runname", "run", "Function");
 	// Go and find our appropriate file name (using 4 digit numbers)
-	string outputname = getfilename(outputdir, basename, 4);
+	string outputname = getfilename(outputdir, basename, inifile.getiniInt("numberpad", 4, "Function"));
 
 	// Set up the output class
 	Output *myOutput = new BasicDump(outputname);
@@ -73,27 +81,29 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Set up the consistency check class
-	// Consistency *myChecker = new Consistency();
-	Consistency *myChecker = new SimpleCheck();
-
-	// Allow the model to initialize itself
-	int initresult = myModel->init(data, starttime, *myParams);
-	if (initresult != 0) {
-		cerr << "Unable to initialize model." << endl;
-		return -1;
-	}
+	parsestring = inifile.getiniString("consistencyclass", "None", "Function");
+	Consistency *myChecker;
+	if (parsestring == "SimpleCheck")
+		myChecker = new SimpleCheck();
+	else
+		myChecker = new Consistency();  // Default option, which has no checking
 
 	// Get the output class to write out information on the run
 	myOutput->printinfo(data, *myIntParams);
 
-	// Allow the model class to write out any information on the run
-	myOutput->printlog(myModel->description());
+	// Allow the model to initialize itself
+	std::string response = myModel->init(data, starttime, *myParams, inifile, result);
+	myOutput->printlog(response);
+	if (result != 0) {
+		cerr << "Unable to initialize model." << endl << response << endl;
+		return -1;
+	}
 
 	// Start timing!
 	boost::timer::cpu_timer myTimer;
 
 	// Do the evolution!
-	int result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput, *myChecker);
+	result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput, *myChecker);
 
 	// Print a goodbye message, using time in milliseconds
 	myTimer.stop();
@@ -111,7 +121,7 @@ int main(int argc, char* argv[]) {
 	return result;
 }
 
-int BeginEvolution(Integrator &integrator, IntParams &params, double data[], double starttime, double endtime, Output &output, Consistency &check) {
+int BeginEvolution(Integrator &integrator, IntParams &params, double data[], const double starttime, const double endtime, Output &output, Consistency &check) {
 	// This routine takes in a number of parameters, and performs the cosmological background evolution
 	// integrator is the class that handles integration steps
 	// params is the class that stores the cosmological parameters
@@ -126,13 +136,17 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], dou
 	int result;
 	// An array to hold the status information
 	double status[17];
+	// And a double to hold the stepsize
+	double stepsize;
 
 	// Write the column headers
-	output.printheading(data, params);
+	output.printheading();
 	// Extract the initial state from the model
 	params.getmodel().getstate(data, time, status, params.getparams());
-	// Finally, write the initial conditions
+	// Write the initial conditions
 	output.printstep(data, time, params, status);
+	// Do a consistency check on the initial conditions
+	check.checkstate(data, time, params, output, status);
 
 	// This is the loop that takes successive integration steps. Halt if we go past the maximum evolution length.
 	while (time < endtime) {
@@ -141,16 +155,14 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], dou
 		result = integrator.dointstep(intfunc, params, data, time, endtime);
 
 		// If the step failed, break out of the loop
-		if (result != GSL_SUCCESS)
+		if (result != GSL_SUCCESS) {
+			cerr << "Integration routine failed." << endl;
+			output.printlog("Integration routine failed.");
 			break;
+		}
 
 		// Extract the state from the model
 		params.getmodel().getstate(data, time, status, params.getparams());
-
-		// Overwrite the hubble parameter from the status array
-		// Either the status array was set to the hubble parameter already,
-		// or the Hubble parameter is not being evolved, and was computed in status.
-		data[3] = status[3];
 
 		// Get the output class to write out the state of the system
 		output.printstep(data, time, params, status);
@@ -161,6 +173,22 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], dou
 		// If we've shot past a = 1, then get out
 		if (data[0] > 1.0)
 			break;
+
+		// If we're nearing a = 1, be careful
+		// Estimated step size in a is H * stepsize
+		stepsize = integrator.getstepsize();
+		if (data[0] + 2.0 * data[3] * stepsize > 1.0) {
+			// Reduce the stepsize
+			// Calculate the exact amount that the stepsize will need to be in order to get to a = 1
+			// in the linear approximation
+			double temp = (1.0 - data[0]) / 2.0 / data[3];
+			integrator.setstepsize(0.9 * temp);
+			// Eventually we'll run into the minimum step size and we'll cross the finishline
+			// Also note that Hdot is usually negative, so it will typically take a little bit more than temp
+			// to cross the finish line.
+			// This tends to take about 20 steps to hit a = 1, which should be good enough to have
+			// derivatives near a = 1 under control.
+		}
 	}
 
 	// Take a look at the consistency of the final state
@@ -170,7 +198,7 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], dou
 }
 
 int intfunc(double t, const double data[], double derivs[], void *params) {
-	// This routine calculates the derivatives for a, phi and \dot{\phi}
+	// This routine calculates the derivatives for a, phi, \dot{\phi} and \dot{H}
 	// It is called by the integration routine.
 
 	// Extract parameters
@@ -178,13 +206,11 @@ int intfunc(double t, const double data[], double derivs[], void *params) {
 
 	// Call the derivatives routine in the model to calculate the derivatives appropriately
 	// Note that they don't depend on time
-	int result = myParams.getmodel().derivatives(data, derivs, myParams.getparams());
+	return myParams.getmodel().derivatives(data, derivs, myParams.getparams());
 
-	// Return the result
-	return result;
 }
 
-string getfilename(std::string &dir, std::string &filebase, int padding) {
+string getfilename(const std::string &dir, const std::string &filebase, const int padding) {
 	// This routine takes in a directory and an output name
 	// It goes and finds the first available filename of the form dir / filebase 00001 etc
 	// eg., dir/run00001.log and dir/run00001.dat

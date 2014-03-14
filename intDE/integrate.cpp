@@ -14,8 +14,8 @@ Integrator::Integrator() {
 	control = gsl_odeiv2_control_yp_new(0.0, 1e-12); // Only care about relative error (this is quite a stringent tolerance)
 	evolve = gsl_odeiv2_evolve_alloc(numelements);
 
-	// Set the initial stepsize
-	stepsize = 1e-4;
+	// Set the initial stepsize to be quite small, in order to get good data on derivatives at the beginning
+	stepsize = 1e-7;
 }
 
 Integrator::~Integrator() {
@@ -28,7 +28,7 @@ Integrator::~Integrator() {
 
 }
 
-int Integrator::dointstep(int (*func)(double, const double*, double*, void*), IntParams &params, double data[], double &time, double endtime) {
+int Integrator::dointstep(int (*func)(double, const double*, double*, void*), IntParams &params, double data[], double &time, const double endtime) {
 	// Integrates a single step
 
 	// Sets up the system to integrate, including the function that specifies the derivatives, NULL for the Jacobian, the number of elements
@@ -43,9 +43,7 @@ int Integrator::dointstep(int (*func)(double, const double*, double*, void*), In
 	int status = gsl_odeiv2_evolve_apply(evolve, control, step, &sys, &time, endtime, &stepsizecopy, data);
 
 	// Update the stepsize according to what GSL thinks will work well, but make sure it doesn't get too big. We want some resolution on our functions!
-	stepsize = stepsizecopy;
-	if (stepsize > 0.03)
-		stepsize = 0.03;
+	setstepsize(stepsizecopy);
 
 	// Return the status: should be GSL_SUCCESS if everything worked
 	return status;
