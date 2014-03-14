@@ -27,9 +27,10 @@ int LambdaCDM::derivatives(const double data[], double derivs[], Parameters &par
 	// Expressions for energy and pressure of dark energy
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
-	double energy = energydensity(data);
 	double press = pressure(data, 0.0);
-	derivs[3] = - params.OmegaM() / 2 / a - params.OmegaR() / a2 - a2 * (3.0 * press + energy) / 2.0;
+	// double energy = energydensity(data);
+	// derivs[3] = - params.OmegaM() / 2 / a - params.OmegaR() / a2 - a2 * (3.0 * press + energy) / 2.0;
+	derivs[3] = - pow(hubble, 2.0) / 2 - params.OmegaR() / a2 / 2 + params.OmegaK() / 2 - 3.0 * a2 * press / 2.0;
 
 	return GSL_SUCCESS;
 }
@@ -55,22 +56,20 @@ double LambdaCDM::pressure(const double data[], const double hdot){
 	return -OmegaLambda;
 }
 
-// Return the description of the model
-std::string LambdaCDM::description() {
-	std::stringstream output;
-	output << "Running LambdaCDM model." << std::endl;
-	return output.str();
-}
-
-/* This function does two things:
+/* This function does four things:
+ * - Sets the name of the class
  * - Reads in the value of Omega_Lambda from the ini file
  * - Initializes the value of H using the Friedmann equation
+ * - Returns a log output
  */
-int LambdaCDM::init(double data[], double time, Parameters &params, IniReader &init) {
+std::string LambdaCDM::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+
+	// Set the name of the class
+	section = "LambdaCDM";
 
 	// Go and extract Omega_Lambda = Lambda 8 pi G / 3 / H_0^2 from the ini file
 	// where S = \int d^4x \sqrt{-g} ( m_P^2/2 R - Lambda ) defines Lambda
-	OmegaLambda = init.getiniDouble("OmegaLambda", 0.7, "LambdaCDM");
+	OmegaLambda = init.getiniDouble("OmegaLambda", 0.7, section);
 
 	// Construct H
 	// Temporary variable
@@ -89,5 +88,12 @@ int LambdaCDM::init(double data[], double time, Parameters &params, IniReader &i
 	data[1] = 0;
 	data[2] = 0;
 
-	return 0; // Success!
+	// We have success!
+	errorstate = 0;
+
+	// Return a string to print to the log
+	std::stringstream output;
+	output << "Running LambdaCDM model with Omega_Lambda = " << OmegaLambda << std::endl;
+	return output.str();
+
 }

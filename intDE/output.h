@@ -17,10 +17,10 @@ class Output {
 		virtual void printinfo(const double data[], IntParams&) = 0;
 
 		// Function to print a header before output starts (e.g., column headings)
-		virtual void printheading(const double data[], IntParams&) {}
+		virtual void printheading() {}
 
 		// Function to print information after each timestep
-		virtual void printstep(const double data[], double time, IntParams&, double status[]) = 0;
+		virtual void printstep(const double data[], const double time, const IntParams&, const double status[]) = 0;
 
 		// Function to print information after run is complete (time is given in milliseconds)
 		virtual void printfinish(const double time) {}

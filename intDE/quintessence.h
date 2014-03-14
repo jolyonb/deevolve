@@ -25,12 +25,11 @@ class Quintessence : public Model {
 	public:
 		// Here are the functions that are overridden by the quintessence class
 		int derivatives(const double data[], double derivs[], Parameters &params);
-		int init(double data[], double time, Parameters &params, IniReader &init);
+		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
 		double speedofsound2(const double data[]);
 		bool implementsSOS();
 		bool isghost(const double data[]);
 		bool implementsghost();
-		std::string description();
 
 	private:
 		// Here are some overridden internal functions. They're pretty self-explanatory.

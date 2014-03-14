@@ -2,18 +2,12 @@ Generic
 ~~~~~~~
 Crosscheck with Jonathan's exponential function
 
-make sure to only run to a = 1
+Jonathan's new plotting stuff
 
 
-lots of points at the start and end, in order to do chebyshev function fitting
+Models:
 
-
-LambdaCDM - fix error term
-make energy and pressure calcs part of model
-calculate Hdot just as a function of H and pressure
-model header - methods to extract properties
-output parameters in info message
-propagate changes to model.h
-put getstate into model.cpp
-
-allow init to output log info
+Do constant w dark energy
+Add three options to quintessence model; mass, exponential potential, user defined
+Do m^2 + lambda \phi^4 quintessence
+k-essence

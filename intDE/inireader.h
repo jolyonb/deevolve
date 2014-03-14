@@ -33,108 +33,89 @@ class IniReader {
 
 		}
 
+		// The following routines are all identical, but written for different data types.
+		// They all return information from the ini file, of the specified data type.
+		// The parameters are identical for each:
+		// key is the name of the key whose value is desired
+		// def is the default to be returned if no value is present
+		// section is an optional argument for the section of the ini file (defaults to no section)
 		string getiniString (const string &key, const string &def = "", const string &section = "") {
-			// Returns a string from the ini file
-			// key is the name of the key whose value is desired
-			// def is the default to be returned if no value is present
-			// section is an optional argument for the section of the ini file (defaults to no section)
 
-			// If we are in a section, construct the tree for that section
 			ptree usetree;
-			if (section == "")
-				usetree = inifile;
-			else {
-				try {
-					usetree = inifile.get_child(section);
-				}
-				catch (...){
-					// Likely got here because that section doesn't exist
-					// Just use the default
-					return def;
-				}
+			if (getsection(section, usetree) == true) {
+				// The section exists (or there was no section), go and pull out the data
+				return usetree.get<string>(key, def);
+			} else {
+				// The section doesn't exist, return the default
+				return def;
 			}
 
-			return usetree.get<string>(key, def);
 		}
 
 		double getiniDouble (const string &key, const double &def = 0.0, const string &section = "") {
-			// Returns a double from the ini file
-			// key is the name of the key whose value is desired
-			// def is the default to be returned if no value is present
-			// section is an optional argument for the section of the ini file (defaults to no section)
 
-			// If we are in a section, construct the tree for that section
 			ptree usetree;
-			if (section == "")
-				usetree = inifile;
-			else {
-				try {
-					usetree = inifile.get_child(section);
-				}
-				catch (...){
-					// Likely got here because that section doesn't exist
-					// Just use the default
-					return def;
-				}
+			if (getsection(section, usetree) == true) {
+				// The section exists (or there was no section), go and pull out the data
+				return usetree.get<double>(key, def);
+			} else {
+				// The section doesn't exist, return the default
+				return def;
 			}
 
-			return usetree.get<double>(key, def);
 		}
 
 		double getiniInt (const string &key, const int &def = 0, const string &section = "") {
-			// Returns an integer from the ini file
-			// key is the name of the key whose value is desired
-			// def is the default to be returned if no value is present
-			// section is an optional argument for the section of the ini file (defaults to no section)
 
-			// If we are in a section, construct the tree for that section
 			ptree usetree;
-			if (section == "")
-				usetree = inifile;
-			else {
-				try {
-					usetree = inifile.get_child(section);
-				}
-				catch (...){
-					// Likely got here because that section doesn't exist
-					// Just use the default
-					return def;
-				}
+			if (getsection(section, usetree) == true) {
+				// The section exists (or there was no section), go and pull out the data
+				return usetree.get<int>(key, def);
+			} else {
+				// The section doesn't exist, return the default
+				return def;
 			}
 
-			return usetree.get<int>(key, def);
 		}
 
 		double getiniBool (const string &key, const bool &def = false, const string &section = "") {
-			// Returns a boolean from the ini file
-			// key is the name of the key whose value is desired
-			// def is the default to be returned if no value is present
-			// section is an optional argument for the section of the ini file (defaults to no section)
 			// Note that 1 is true, anything else is false (I think?)
 
-			// If we are in a section, construct the tree for that section
 			ptree usetree;
-			if (section == "")
-				usetree = inifile;
-			else {
-				try {
-					usetree = inifile.get_child(section);
-				}
-				catch (...){
-					// Likely got here because that section doesn't exist
-					// Just use the default
-					return def;
-				}
+			if (getsection(section, usetree) == true) {
+				// The section exists (or there was no section), go and pull out the data
+				return usetree.get<bool>(key, def);
+			} else {
+				// The section doesn't exist, return the default
+				return def;
 			}
 
-			return usetree.get<bool>(key, def);
 		}
 
 	private:
 		// Stores the content of the ini file
 		ptree inifile;
+
+		// Returns the appropriate section from the ini file
+		bool getsection(const string &section, ptree &result) {
+
+			// If we are not in a section, return the tree
+			if (section == "") {
+				result = inifile;
+			    return true;
+			} else {
+				// If we are in a section, try to construct the tree for that section
+				try {
+					result = inifile.get_child(section);
+				}
+				catch (...){
+					// Likely got here because that section doesn't exist
+					return false;
+				}
+			}
+			return true;
+
+		}
 };
-
-
 
 #endif /* INIREADER_H_ */

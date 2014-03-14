@@ -16,9 +16,9 @@ class Consistency {
 	public:
 		// These functions take as arguments: data, time, parameters, and output class
 		// Check the state of the data in the middle of a run
-		virtual void checkstate (double*, double, IntParams&, Output&, double*) {}
+		virtual void checkstate (const double*, const double, IntParams&, Output&, const double*) {}
 		// Check the state of the data at the end of a run
-		virtual void checkfinal (double*, double, IntParams&, Output&, double*) {}
+		virtual void checkfinal (const double*, const double, IntParams&, Output&, const double*) {}
 
 		virtual ~Consistency() {} // Destructor
 };

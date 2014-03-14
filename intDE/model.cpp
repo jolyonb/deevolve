@@ -24,7 +24,7 @@
    This routine should be largely model independent, and as such is included in the abstract Model class.
 
  */
-void Model::getstate(const double data[], double time, double info[], Parameters &params) {
+void Model::getstate(const double data[], const double time, double info[], Parameters &params) {
 
 	// The first section here should be model independent (nonminimally coupled models may differ in some definitions)
 

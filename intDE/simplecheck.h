@@ -19,10 +19,8 @@
 class SimpleCheck : public Consistency {
 	public:
 		// Inherited functions
-		void checkstate (double*, double, IntParams&, Output&, double*);
-		void checkfinal (double*, double, IntParams&, Output&, double*);
+		void checkstate (const double*, const double, IntParams&, Output&, const double*);
+		void checkfinal (const double*, const double, IntParams&, Output&, const double*);
 };
-
-
 
 #endif /* SIMPLECHECK_H_ */

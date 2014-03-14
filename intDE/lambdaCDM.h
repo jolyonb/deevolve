@@ -22,8 +22,7 @@ class LambdaCDM : public Model {
 	public:
 		// Here are the base functions that are overridden by this class
 		int derivatives(const double data[], double derivs[], Parameters &params);
-		std::string description();
-		int init(double data[], double time, Parameters &params, IniReader &init);
+		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
 
 	private:
 		// Here are some overridden internal functions. They're pretty self-explanatory.

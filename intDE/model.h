@@ -25,12 +25,17 @@ class Model {
 		virtual int derivatives(const double data[], double derivs[], Parameters &params) = 0;
 		// This function returns information on the state of the model
 		// A mostly-model independent implementation is provided
-		virtual void getstate(const double data[], double time, double info[], Parameters &params);
+		virtual void getstate(const double data[], const double time, double info[], Parameters &params);
 
 		// A function to allow the model to initialize itself
 		// In particular, this function will have to calculate H from the Friedmann equation as an initial condition
 		// if the model is evolving H.
-		virtual int init(double data[], double time, Parameters &params, IniReader &init) {return 0;}
+		// It can also read in information from the ini file if desired.
+		// The return value is a string to be output to the log
+		virtual std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate) {
+			errorstate = 0;
+			return "";
+		}
 
 		// The speedofsound2 returns the speed of sound squared, given the state of the system
 		virtual double speedofsound2(const double data[]) {return 0;}
@@ -46,15 +51,12 @@ class Model {
 		// Virtual destructor
 		virtual ~Model() {return;}
 
-		// Function to return a description of the model and the parameters its using.
-		// Will be outputted to the log file.
-		virtual std::string description() {return "";}
-
-	private:
+	protected:
 		// Functions to return the energy density (given the data), and the pressure (given data and \dot{H})
 		virtual double energydensity(const double data[]) = 0;
 		virtual double pressure(const double data[], const double hdot) = 0;
-
+		// Name of the class. Should set in the init routine. Used as the section name in the ini file.
+		std::string section;
 };
 
 #endif /* MODEL_H_ */

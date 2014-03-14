@@ -26,8 +26,15 @@ double Quintessence::potentialprime(const double phi){
 
 }
 
-// This function initializes the value of H, using the Friedmann equation
-int Quintessence::init(double data[], double time, Parameters &params, IniReader &init) {
+/* This function does three things:
+ * - Sets the name of the class
+ * - Initializes the value of H using the Friedmann equation
+ * - Returns a log output
+ */
+std::string Quintessence::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+
+	// Set class name
+	section = "Quintessence";
 
 	// Temporary variable
 	double temp;
@@ -41,7 +48,14 @@ int Quintessence::init(double data[], double time, Parameters &params, IniReader
 	// Calculate H
 	data[3] = pow(temp, 0.5);
 
-	return 0; // Success!
+	// Mark success!
+	errorstate = 0;
+
+	// Return the description of the model
+	std::stringstream output;
+	output << "Running Quintessence model." << std::endl;
+	return output.str();
+
 }
 
 /*
@@ -74,9 +88,8 @@ int Quintessence::derivatives(const double data[], double derivs[], Parameters &
 	// Expressions for energy and pressure of dark energy
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
-	double energy = energydensity(data);
 	double press = pressure(data, 0.0);
-	derivs[3] = - params.OmegaM() / 2 / a - params.OmegaR() / a2 - a2 * (3.0 * press + energy) / 2.0;
+	derivs[3] = - 0.5 * pow(hubble, 2.0) - 0.5 * params.OmegaR() / a2 + 0.5 * params.OmegaK() - 1.5 * a2 * press;
 
 	return GSL_SUCCESS;
 }
@@ -87,8 +100,9 @@ double Quintessence::energydensity(const double data[]){
 	double a = data[0];
 	double phi = data[1];
 	double phidot = data[2];
+	double hubble = data[3];
 
-	return (pow(phidot,2.0) / 2 / pow(a,2.0) + potential(phi)) / 3;
+	return (0.5 * pow(phidot / a, 2.0) + potential(phi)) / 3;
 	// The factor of 1/3 is correct. Note that a cosmological constant will contribute
 	// 8 pi G Lambda / 3 H_0^2 = Lambda / \rho_c = Omega_Lambda.
 }
@@ -98,8 +112,9 @@ double Quintessence::pressure(const double data[], const double hdot){
 	double a = data[0];
 	double phi = data[1];
 	double phidot = data[2];
+	double hubble = data[3];
 
-	return (pow(phidot,2.0) / 2 / pow(a,2.0) - potential(phi)) / 3;
+	return (0.5 * pow(phidot / a, 2.0) - potential(phi)) / 3;
 }
 
 // The implementsSOS function returns whether or not a class actually implements the speedofsound2 function
@@ -109,7 +124,7 @@ bool Quintessence::implementsSOS() {
 // The speedofsound2 returns the speed of sound squared, given the state of the system
 double Quintessence::speedofsound2(const double data[]) {
 	// The speed of sound in quintessence is always 1.
-	return 1;
+	return 1.0;
 }
 
 // The implementsghost function returns whether or not a class actually implements the isghost function
@@ -120,11 +135,4 @@ bool Quintessence::implementsghost() {
 bool Quintessence::isghost(const double data[]) {
 	// Quintessence is never ghost-like
 	return false;
-}
-
-// Return the description of the model
-std::string Quintessence::description() {
-	std::stringstream output;
-	output << "Running Quintessence model." << std::endl;
-	return output.str();
 }
