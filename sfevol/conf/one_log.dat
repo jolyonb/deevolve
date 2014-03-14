@@ -1,0 +1,31 @@
+
+Run location: conf/
+Run ID: one
+
+Model info: 
+modID = 1 :: Quintessence :: exponential potential
+L = X - V(phi), where V(phi) = e^{- lambda phi}
+lambda = 1
+
+ INITIAL CONDITIONS
+---------------------
+z_init = 10000
+OmegaR0 = 0.0001
+OmegaM0 = 0.3
+phi_init = 2
+phidot_init = 10
+
+
+Completion without any flagging
+
+ FINAL VALUES
+---------------------
+a_final = 1.00071
+z_final = -0.000708911
+OmegaM = 0.788709
+OmegaR = 0.000520347
+OmegaDE = 0.21077
+wtot = -0.114706
+wde = -0.965595
+cs2 = 1
+
