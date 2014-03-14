@@ -70,7 +70,7 @@ int LambdaCDM::init(double data[], double time, Parameters &params, IniReader &i
 
 	// Go and extract Omega_Lambda = Lambda 8 pi G / 3 / H_0^2 from the ini file
 	// where S = \int d^4x \sqrt{-g} ( m_P^2/2 R - Lambda ) defines Lambda
-	OmegaLambda = init.getiniDouble("OmegaLambda", 0.3, "LambdaCDM");
+	OmegaLambda = init.getiniDouble("OmegaLambda", 0.7, "LambdaCDM");
 
 	// Construct H
 	// Temporary variable

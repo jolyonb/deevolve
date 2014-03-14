@@ -28,8 +28,8 @@ int main(int argc, char* argv[]) {
 	Integrator *myIntegrator = new Integrator;
 
 	// Set up the equations of motion/model class
-	Model *myModel = new Quintessence();
-//	Model *myModel = new LambdaCDM();
+//	Model *myModel = new Quintessence();
+	Model *myModel = new LambdaCDM();
 
 	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init, h (of H_0 = h * 100 km/s/Mpc) and the model
 	Parameters *myParams = new Parameters(inifile.getiniDouble("Omegam", 0.3, "general"),
