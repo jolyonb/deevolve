@@ -42,6 +42,10 @@ int main(int argc, char* argv[]) {
 	std::string parsestring = inifile.getiniString("model", "LambdaCDM", "Cosmology");
 	if (parsestring == "Quintessence")
 		myModel = new Quintessence();
+	else if (parsestring == "ConstW")
+		myModel = new ConstW();
+	else if (parsestring == "Kessence")
+		myModel = new Kessence();
 	else
 		myModel = new LambdaCDM();    // LambdaCDM is the default
 
@@ -98,6 +102,10 @@ int main(int argc, char* argv[]) {
 		cerr << "Unable to initialize model." << endl << response << endl;
 		return -1;
 	}
+
+	// Print some stuff to the screen
+	cout << "Beginning evolution of " << myModel->classname() << " model" << endl;
+	cout << "Outputting to " << outputname << endl;
 
 	// Start timing!
 	boost::timer::cpu_timer myTimer;

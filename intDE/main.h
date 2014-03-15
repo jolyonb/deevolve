@@ -25,6 +25,8 @@
 #include "consistency.h"
 #include "simplecheck.h"
 #include "inireader.h"
+#include "constw.h"
+#include "kessence.h"
 
 #include <iostream>
 #include <cmath>

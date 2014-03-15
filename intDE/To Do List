@@ -1,11 +1,9 @@
 Generic
 ~~~~~~~
-Crosscheck with Jonathan's exponential function
-
-
-Models:
-
-Do constant w dark energy
-Add three options to quintessence model; mass, exponential potential, user defined
-Do m^2 + lambda \phi^4 quintessence
-k-essence
+Crosscheck with Jonathan's code:
+* LambdaCDM
+* ConstW
+* Quintessence massive field
+* Quintessence lambda phi^4
+* Quintessence exponential
+* kessence

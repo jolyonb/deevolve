@@ -14,7 +14,13 @@
 
 #include "params.h"
 #include "inireader.h"
+#include <cmath>
+// stringstreams
+#include <iostream>
+#include <sstream>
 #include <string>
+// GSL error numbers
+#include <gsl/gsl_errno.h>
 
 // This defines the Model abstract class.
 // Individual models will inherit this class and implement the appropriate functions.
@@ -50,6 +56,9 @@ class Model {
 
 		// Virtual destructor
 		virtual ~Model() {return;}
+
+		// Call to return the class name
+		std::string classname() {return section;}
 
 	protected:
 		// Functions to return the energy density (given the data), and the pressure (given data and \dot{H})

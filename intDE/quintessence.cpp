@@ -4,25 +4,76 @@
 // Returns the potential for a given phi (used in calculating energy density and pressure)
 double Quintessence::potential(const double phi){
 
-	// This is just the potential V = m_P^2 H_0^2 phi^2 / 2 (for dimensionless phi)
-	// In terms of the dimensionless potential U, this is U = phi^2 / 2
-	return pow(phi, 2.0) / 2;
+	// The potential is selected by a parameter that is specified in params.ini
+	switch(modeltype){
+		case 1 :
+			// lambda phi^4
+			// This is just the potential V = mass * m_P^2 H_0^2 phi^2 / 2 + lambda * m_P^2 H_0^2 phi^4
+			// (for dimensionless phi)
+			// In terms of the dimensionless potential U, this is U = mass * phi^2 / 2 + lambda * phi^4
+			return mass * pow(phi, 2.0) / 2 + lambda * pow(phi, 4.0);
 
-	// This is an exponential function: V = m_P^2 H_0^2 e^(-lambda phi)
-	//const double lambda = 1.0;
-	//return exp(- lambda * phi);
+		case 2 :
+			// Exponential
+			// This is an exponential function: V = alpha m_P^2 H_0^2 exp(- beta phi)
+			// (for dimensionless phi)
+			// In terms of the dimensionless potential U, this is U = alpha exp(- beta phi)
+			return alpha * exp(- beta * phi);
+
+		case 3 :
+			// User defined potential
+			// (Presently not defined)
+			return 0;
+
+		case 0 :
+		default : // Catch all
+			// mass term only
+			// This is just the potential V = mass * m_P^2 H_0^2 phi^2 / 2 (for dimensionless phi)
+			// In terms of the dimensionless potential U, this is U = mass * phi^2 / 2
+			return mass * pow(phi, 2.0) / 2;
+	}
+
+	// It's an error if we get to here, but return something sensible
+	return 0;
+
 }
 // Returns the derivative of the potential for a given phi (used in calculating the scalar equation of motion)
 double Quintessence::potentialprime(const double phi){
 
-	// This is just the potential V = m_P^2 H_0^2 phi^2 / 2 (for dimensionless phi)
-	// In terms of the dimensionless potential U, this is U = phi^2 / 2
-	// \partial_\phi U = phi, so return phi
-	return phi;
+	// The potential is selected by a parameter that is specified in params.ini
+	switch(modeltype){
+		case 1 :
+			// lambda phi^4
+			// This is just the potential V = mass * m_P^2 H_0^2 phi^2 / 2 + lambda * m_P^2 H_0^2 phi^4
+			// (for dimensionless phi)
+			// In terms of the dimensionless potential U, this is U = mass * phi^2 / 2 + lambda * phi^4
+			// The derivative is U' = mass * phi + 4 * lambda * phi^3
+			return mass * phi + 4.0 * lambda * pow(phi, 3.0);
 
-	// This is an exponential function: V = m_P^2 H_0^2 e^(-lambda phi)
-	//const double lambda = 1.0;
-	//return - lambda * exp(- lambda * phi);
+		case 2 :
+			// Exponential
+			// This is an exponential function: V = alpha m_P^2 H_0^2 exp(- beta phi)
+			// (for dimensionless phi)
+			// In terms of the dimensionless potential U, this is U = alpha exp(- beta phi)
+			// The derivative is U' = - alpha beta exp(- beta phi)
+			return - beta * alpha * exp(- beta * phi);
+
+		case 3 :
+			// User defined potential
+			// (Presently not defined)
+			return 0;
+
+		case 0 :
+		default : // Catch all
+			// mass term only
+			// This is just the potential V = mass * m_P^2 H_0^2 phi^2 / 2 (for dimensionless phi)
+			// In terms of the dimensionless potential U, this is U = mass * phi^2 / 2
+			// The derivative is U' = mass * phi
+			return mass * phi;
+	}
+
+	// It's an error if we get to here, but return something sensible
+	return 0;
 
 }
 
@@ -36,6 +87,16 @@ std::string Quintessence::init(double data[], double time, Parameters &params, I
 	// Set class name
 	section = "Quintessence";
 
+	// Go and get model parameters
+	modeltype = init.getiniInt("PotentialType", 0, section);
+	if (modeltype < 0 || modeltype > 3)  // do a quick bit of error checking
+		modeltype = 0;
+	mass = init.getiniDouble("mass", 1.0, section);
+	lambda = init.getiniDouble("lambda", 1.0, section);
+	alpha = init.getiniDouble("alpha", 1.0, section);
+	beta = init.getiniDouble("beta", 1.0, section);
+
+	// Construct H
 	// Temporary variable
 	double temp;
 	// Scale factor
@@ -53,7 +114,27 @@ std::string Quintessence::init(double data[], double time, Parameters &params, I
 
 	// Return the description of the model
 	std::stringstream output;
-	output << "Running Quintessence model." << std::endl;
+	switch(modeltype){
+		case 1 :
+			// lambda phi^4
+			output << "Running Quintessence model with lambda phi^4 potential. Mass = "
+					<< mass << ", lambda = " << lambda << std::endl;
+			break;
+		case 2 :
+			// Exponential
+			output << "Running Quintessence model with exponential potential. alpha = "
+					<< alpha << ", beta = " << beta << std::endl;
+			break;
+		case 3 :
+			// User defined potential
+			output << "Running Quintessence model with user-defined potential." << std::endl;
+			break;
+		case 0 :
+		default : // Catch all
+			// mass term only
+			output << "Running Quintessence model with mass potential. Mass = "
+					<< mass << std::endl;
+	}
 	return output.str();
 
 }
@@ -85,7 +166,6 @@ int Quintessence::derivatives(const double data[], double derivs[], Parameters &
 	derivs[2] = - 2.0 * hubble * phidot - a2 * potentialprime(phi);
 
 	// Computing \dot{H}. This requires solving the acceleration equation for \dot{H}.
-	// Expressions for energy and pressure of dark energy
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);

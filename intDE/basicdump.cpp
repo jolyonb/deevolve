@@ -7,7 +7,6 @@ void BasicDump::printinfo(const double data[], IntParams &params) {
 	myLog->precision(15);
 
 	// Print the header
-	cout << "Beginning evolution" << endl;
 	*myLog << "Omega_m: \t" << params.getparams().OmegaM() << endl;
 	*myLog << "Omega_k: \t" << params.getparams().OmegaK() << endl;
 	*myLog << "T_gamma: \t" << params.getparams().Tgamma() << endl;
@@ -46,9 +45,6 @@ void BasicDump::printstep(const double data[], const double time, const IntParam
 
 // Constructor
 BasicDump::BasicDump(const std::string &filename) {
-
-	// Give a message about the output filename
-	cout << "Outputting to " << filename << endl;
 
 	// Construct filenames
 	string logfile = filename + ".log";

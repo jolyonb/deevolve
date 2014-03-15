@@ -10,6 +10,7 @@ void SimpleCheck::checkstate (const double data[], const double time, IntParams 
 	// Speed of sound is not superluminal
 	// Speed of sound is not imaginary
 	// Perturbations are not ghost-like
+	// Energy density is not negative
 
 	// Check the error in the Friedmann equation
 	if (abs(status[16]) > 1e-9) {
@@ -46,6 +47,14 @@ void SimpleCheck::checkstate (const double data[], const double time, IntParams 
 			message << "Warning: Perturbations are ghostlike, time t = " << time;
 			output.printlog(message.str());
 		}
+	}
+
+	// Check for negative energy density in DE
+	// Usually we'll crash from a div/0 error before getting here though!
+	if (status[13] < 0) {
+		std::stringstream message;
+		message << "Warning: Dark energy has negative energy density, time t = " << time;
+		output.printlog(message.str());
 	}
 
 }
