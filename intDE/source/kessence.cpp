@@ -190,3 +190,22 @@ double Kessence::speedofsound2(const double data[]) {
 	// Return result
 	return LX / (LX + 2.0 * X * LXX);
 }
+
+// The implementsghost function returns whether or not a class actually implements the isghost function
+bool Kessence::implementsghost() {
+	return true;
+}
+// The isghost function is given the state of the system and returns whether or not the theory has become ghostlike
+bool Kessence::isghost(const double data[]) {
+	// K-essence becomes ghost-like when the denominator in the speed of sound squared becomes negative.
+
+	// Compute quantities
+	int result = computelagrangian(data);
+
+	// Calculate and return the result
+	if (LX + 2.0 * X * LXX < 0)
+		return true;
+	else
+		return false;
+
+}
