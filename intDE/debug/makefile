@@ -5,7 +5,7 @@ CC = g++
 
 all: main
 
-%.o: ../%.cpp
+%.o: ../source/%.cpp
 	$(CC) -c $(INC) $< -o $@
 
 main: $(OBJECTS)

@@ -19,10 +19,8 @@ class Kessence : public Model {
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
 		double speedofsound2(const double data[]);
 		bool implementsSOS();
-
-		// I'll implement these later
-//		bool isghost(const double data[]);
-//		bool implementsghost();
+		bool isghost(const double data[]);
+		bool implementsghost();
 
 	private:
 		// Here are some overridden internal functions. They're pretty self-explanatory.
