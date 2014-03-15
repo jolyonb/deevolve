@@ -20,6 +20,24 @@ class Consistency {
 		// Check the state of the data at the end of a run
 		virtual void checkfinal (const double*, const double, IntParams&, Output&, const double*) {}
 
+		// Check for NaN results. Return true if any are found.
+		bool checknan (const double data[], const double time, const double status[]) {
+			if (isnan(time))
+				return true;
+
+			for (int i = 0; i < 4; i++) {
+				if (isnan(data[i]))
+					return true;
+			}
+
+			for (int i = 0; i < 17; i++) {
+				if (isnan(status[i]))
+					return true;
+			}
+
+			return false;
+		}
+
 		virtual ~Consistency() {} // Destructor
 };
 

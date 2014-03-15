@@ -178,6 +178,14 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 		// Take a look at the consistency of the data
 		check.checkstate(data, time, params, output, status);
 
+		// Make sure that nothing has become NaN
+		if (check.checknan(data, time, status)) {
+			// Something has become not-a-number
+			output.printlog("A quantity has become NaN. Terminating.");
+			cout << "A quantity has become NaN. Terminating." << endl;
+			break;
+		}
+
 		// If we've shot past a = 1, then get out
 		if (data[0] > 1.0)
 			break;
