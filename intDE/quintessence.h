@@ -9,16 +9,10 @@
  *
  */
 
-#ifndef QUINTESSENCE_H2_
+#ifndef QUINTESSENCE_H_
 #define QUINTESSENCE_H_
 
 #include "model.h"
-#include "integrate.h"
-#include <cmath>
-// stringstreams
-#include <iostream>
-#include <string>
-#include <sstream>
 
 class Quintessence : public Model {
 
@@ -38,6 +32,13 @@ class Quintessence : public Model {
 		// These internal functions are specific to quintessence
 		double potential(const double phi);
 		double potentialprime(const double phi);
+
+		// Some parameters that are read in from params.ini
+		int modeltype;
+		double mass;
+		double lambda;
+		double alpha;
+		double beta;
 };
 
-#endif /* QUINTESSENCE_H2_ */
+#endif /* QUINTESSENCE_H_ */

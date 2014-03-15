@@ -10,12 +10,6 @@
 #define LAMBDACDM_H_
 
 #include "model.h"
-#include "integrate.h"
-#include <cmath>
-// stringstreams
-#include <iostream>
-#include <string>
-#include <sstream>
 
 class LambdaCDM : public Model {
 
