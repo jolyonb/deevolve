@@ -8,11 +8,11 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 
 	// Extract data for easier reading of the code
 	double a = data[0];
-	double a2 = pow(a, 2.0);   // a^2
+	double a2 = a * a;
 	double phi = data[1];
 	double phidot = data[2];
-	double phidot2 = pow(data[2], 2.0);
-	double phidot3 = pow(data[2], 3.0);
+	double phidot2 = phidot * phidot;
+	double phidot3 = phidot * phidot2;
 	double hubble = data[3];
 
 	// Computing \dot{a}, knowing the hubble rate
@@ -24,15 +24,16 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 
 	// Computing \ddot{\phi}. This requires solving the scalar equation of motion for \ddot{\phi}.
 	// Compute k-essence quantities
-	double U[6];
-	int result = computefunctions(data, U);
-	double X = pow(data[2] / data[0], 2.0) / 2;
+	int result = computelagrangian(data);
 
-	derivs[2] = (a2 * U[1]
-	                   - 2 * hubble * phidot * U[3]
-	                   - U[5] * phidot2
-	                   + U[4] * hubble * phidot3 / a2)
-	                   / (U[3] + U[4] * phidot2 / a2);
+	derivs[2] = (a2 * Lp
+	                   - 2 * hubble * phidot * LX
+	                   - LXp * phidot2
+	                   + LXX * hubble * phidot3 / a2)
+	                   / (LX + LXX * phidot2 / a2);
+	// This is equivalent to
+	// ( 1.0 - 3.0 * SoS ) * phidot * hubble + SoS / LX * ( a2 * Lp - pow( phidot , 2.0 ) * LpX );
+	// where SoS = c^2. However, the full expression doesn't have a div/0 when LX = 0.
 
 	// Computing \dot{H}. This requires solving the acceleration equation for \dot{H}.
 	// Note that pressure does not depend on \dot{H} in this model,
@@ -48,46 +49,60 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 // Function to calculate the Lagrangian and all its appropriate derivatives:
 // U, Up, Upp, UX, UXX, UXP
 // The results array should be of length 6
-int Kessence::computefunctions(const double data[], double results[]) {
+int Kessence::computelagrangian(const double data[]) {
 	// First, check the data against the previous data
 	// This prevents the results being computed multiple times on the same data
 	if (data[0] == storeddata[0] &&
 			data[1] == storeddata[1] &&
 			data[2] == storeddata[2] &&
 			data[3] == storeddata[3]) {
-		// It's the same as before, so return the stored results
-		for (int i = 0; i < 6; i++)
-			results[i] = storedresults[i];
+		// It's the same as before, so don't recompute it
 		// Success!
 		return 0;
 	}
 
 	// Extract data for easier reading of the code
 	double phi = data[1];
-	double X = pow(data[2] / data[0], 2.0) / 2;
+	// Compute the X quantity
+	X = pow(data[2] / data[0], 2.0) / 2.0;
 
 	// Calculate everything
-	// U is a function of X and phi
-	// Quintessence is U = X - V(phi)
-	// This implements quintessence, in order to compare with the quintessence module
-	// U
-	results[0] = X - pow(phi, 2.0) / 2.0;
-	// U,phi
-	results[1] = - phi;
-	// U,phi phi
-	results[2] = -1.0;
-	// U,X
-	results[3] = 1.0;
-	// U,X X
-	results[4] = 0.0;
-	// U,X phi
-	results[5] = 0.0;
+	// Below is a different choice of Lagrangian
+    // This Lagrangian is L = X + alpha X^n - beta e^{-lambda phi}
+    // (all suitably dimensionless)
+	// Quintessence has alpha = 0
 
-	// Store the data and calculated results
+    // Here is the potential
+    double pot = beta * exp(- lambda * phi);
+    double dpot = - lambda * pot;
+    double ddpot = lambda * lambda * pot;
+
+    // Here we construct the Lagrangian & important derivatives thereof.
+
+    // (1) Lagrangian
+    L = X + alpha * pow( X, n ) - pot;
+
+    // (2) dL/dX
+    LX = 1.0 + alpha * n * pow ( X, n - 1.0 );
+
+    // (3) d^2L/dX^2
+    if (n == 1.0)
+    	LXX = 0;
+    else
+        LXX = alpha * n * (n - 1.0) * pow( X, n - 2.0);
+
+    // (4) dL/dphi
+    Lp = - dpot;
+
+    // (5) d^2L/dphi^2
+    Lpp = - ddpot;
+
+    // (6) d^2L/dXdphi
+    LXp = 0.0;
+
+	// Store the data for which these results are correct
 	for (int i = 0; i < 4; i++)
 		storeddata[i] = data[i];
-	for (int i = 0; i < 6; i++)
-		storedresults[i] = results[i];
 
 	// Success!
 	return 0;
@@ -102,11 +117,9 @@ double Kessence::energydensity(const double data[]){
 	double hubble = data[3];
 
 	// Compute quantities
-	double U[6];
-	int result = computefunctions(data, U);
-	double X = pow(data[2] / data[0], 2.0) / 2;
+	int result = computelagrangian(data);
 
-	return (2 * X * U[3] - U[0]) / 3.0;
+	return (2.0 * X * LX - L) / 3.0;
 }
 // Returns the ratio P_Q/rho_c
 double Kessence::pressure(const double data[], const double hdot){
@@ -117,10 +130,9 @@ double Kessence::pressure(const double data[], const double hdot){
 	double hubble = data[3];
 
 	// Compute quantities
-	double U[6];
-	int result = computefunctions(data, U);
+	int result = computelagrangian(data);
 
-	return U[0] / 3.0;
+	return L / 3.0;
 }
 
 /* This function does a few things:
@@ -136,6 +148,9 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 	// Go and get model parameters
 	// lambda is just a parameter in the ini file. It can be used to do a single parameter scan, for example.
 	lambda = init.getiniDouble("lambda", 1.0, section);
+	alpha = init.getiniDouble("alpha", 1.0, section);
+	beta = init.getiniDouble("beta", 1.0, section);
+	n = init.getiniDouble("n", 2.0, section);
 
 	// Construct H
 	// Temporary variable
@@ -155,7 +170,23 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 
 	// Return a string to print to the log
 	std::stringstream output;
-	output << "Running Kessence model with parameter lambda = " << lambda << std::endl;
+	output << "Running Kessence model. lambda = " << lambda
+			<< ", n = " << n << ", alpha = " << alpha << ", beta = " << beta << std::endl;
 	return output.str();
 
+}
+
+// The implementsSOS function returns whether or not a class actually implements the speedofsound2 function
+bool Kessence::implementsSOS() {
+	return true;
+}
+// The speedofsound2 returns the speed of sound squared, given the state of the system
+double Kessence::speedofsound2(const double data[]) {
+	// The speed of sound in k-essence can vary from 1.
+
+	// Compute quantities
+	int result = computelagrangian(data);
+
+	// Return result
+	return LX / (LX + 2.0 * X * LXX);
 }
