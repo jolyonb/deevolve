@@ -75,7 +75,6 @@ int Kessence::computelagrangian(const double data[]) {
     // Here is the potential
     double pot = beta * exp(- lambda * phi);
     double dpot = - lambda * pot;
-    double ddpot = lambda * lambda * pot;
 
     // Here we construct the Lagrangian & important derivatives thereof.
 
@@ -94,10 +93,7 @@ int Kessence::computelagrangian(const double data[]) {
     // (4) dL/dphi
     Lp = - dpot;
 
-    // (5) d^2L/dphi^2
-    Lpp = - ddpot;
-
-    // (6) d^2L/dXdphi
+    // (5) d^2L/dXdphi
     LXp = 0.0;
 
 	// Store the data for which these results are correct

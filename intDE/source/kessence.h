@@ -44,7 +44,6 @@ class Kessence : public Model {
 		double LX;
 		double LXX;
 		double Lp;
-		double Lpp;
 		double LXp;
 
 };
