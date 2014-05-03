@@ -147,6 +147,10 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 	// And a double to hold the stepsize
 	double stepsize;
 
+	// Variables for storing the current state, in case we overshoot.
+	double oldtime;
+	double olddata[4];
+
 	// Write the column headers
 	output.printheading();
 	// Extract the initial state from the model
@@ -159,6 +163,13 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 	// This is the loop that takes successive integration steps. Halt if we go past the maximum evolution length.
 	while (time < endtime) {
 
+		// Store old data before taking a new step
+		oldtime = time;
+		olddata[0] = data[0];
+		olddata[1] = data[1];
+		olddata[2] = data[2];
+		olddata[3] = data[3];
+
 		// Take a step
 		result = integrator.dointstep(intfunc, params, data, time, endtime);
 
@@ -167,6 +178,37 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 			cerr << "Integration routine failed." << endl;
 			output.printlog("Integration routine failed.");
 			break;
+		}
+
+		// If we've shot past a = 1, then interpolate back to a = 1.
+		if (data[0] > 1.0) {
+			// Calculate the time at which a = 0
+			double olda = olddata[0];
+			double newa = data[0];
+			double time1 = oldtime + (time - oldtime) * (1 - olda) / (newa - olda);
+
+			// Calculate the value of H
+			double oldH = olddata[3];
+			double newH = data[3];
+			double H1 = oldH + (time1 - oldtime) / (time - oldtime) * (newH - oldH);
+
+			// Calculate the value of phi
+			double oldphi = olddata[1];
+			double newphi = data[1];
+			double phi1 = oldphi + (time1 - oldtime) / (time - oldtime) * (newphi - oldphi);
+
+			// Calculate the value of phidot
+			double oldphid = olddata[2];
+			double newphid = data[2];
+			double phid1 = oldphid + (time1 - oldtime) / (time - oldtime) * (newphid - oldphid);
+
+			// Put it all back into the data
+			time = time1;
+			data[0] = 1.0;
+			data[1] = phi1;
+			data[2] = phid1;
+			data[3] = H1;
+
 		}
 
 		// Extract the state from the model
@@ -186,8 +228,8 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 			break;
 		}
 
-		// If we've shot past a = 1, then get out
-		if (data[0] > 1.0)
+		// Get out if we're done
+		if (data[0] >= 1.0)
 			break;
 
 		// If we're nearing a = 1, be careful

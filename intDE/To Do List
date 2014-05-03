@@ -7,3 +7,5 @@ Crosscheck with Jonathan's code:
 * Quintessence lambda phi^4
 * Quintessence exponential
 * kessence
+
+* Add in an option for lambdaCDM and constant W models to set spatial curvature to exactly vanishing (adjust Omega fraction)
