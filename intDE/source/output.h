@@ -22,11 +22,17 @@ class Output {
 		// Function to print information after each timestep
 		virtual void printstep(const double data[], const double time, const IntParams&, const double status[]) = 0;
 
+		// Function to print header for postprocessing data before output starts (e.g., column headings)
+		virtual void postprintheading() {}
+
+		// Function to print information for postprocessing data after each time step
+		virtual void postprintstep(const double z, const double H, const double DC, const double DM, const double DA, const double DL, const double mu) = 0;
+
 		// Function to print information after run is complete (time is given in milliseconds)
 		virtual void printfinish(const double time) {}
 
 		// Constructor with optional file name
-		Output(const std::string &filename = "run") {}
+		Output(const std::string &filename = "run", const std::string &postname = "d") {}
 
 		// Routine to print a line to the log file
 		virtual void printlog(const std::string&) = 0;
@@ -36,6 +42,7 @@ class Output {
 
 		// Check to ensure that output is ready (if not outputting to a file, just return true)
 		virtual bool filesready() = 0;
+
 };
 
 #endif /* OUTPUT_H_ */

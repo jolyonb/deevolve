@@ -27,19 +27,22 @@
 #include "inireader.h"
 #include "constw.h"
 #include "kessence.h"
+#include "process.h"
 
 #include <iostream>
 #include <cmath>
 #include <boost/filesystem.hpp> // Used for creating the output filenames
 #include <sstream> // Used for manipulating filenames
+#include <algorithm>    // std::reverse
+#include <vector>
 
 // Function that controls the evolution
-int BeginEvolution(Integrator&, IntParams&, double*, const double, const double, Output&, Consistency&);
+int BeginEvolution(Integrator&, IntParams&, double*, const double, const double, Output&, Consistency&, vector<double>&, vector<double>&);
 
 // Function that the integrator calls to obtain derivatives
 int intfunc(double, const double*, double*, void*);
 
 // Function that finds an appropriate filename (padding is number of characters in the number)
-std::string getfilename(const std::string &outputdir, const std::string &basename, const int padding = 4);
+std::string getfilename(const std::string &, const std::string &, const std::string &, const int padding = 4);
 
 #endif /* MAIN_H_ */

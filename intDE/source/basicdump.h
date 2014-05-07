@@ -23,12 +23,14 @@ class BasicDump : public Output {
 		void printinfo(const double data[], IntParams&);
 		void printheading();
 		void printstep(const double data[], const double time, const IntParams&, const double status[]);
+		void postprintheading();
+		void postprintstep(const double z, const double H, const double DC, const double DM, const double DA, const double DL, const double mu);
 		void printfinish(const double time);
 		bool filesready();
 		void printlog(const std::string&);
 
 		// Constructor
-		BasicDump(const std::string &filename = "run");
+		BasicDump(const std::string &filename = "run", const std::string &postname = "d");
 		// Destructor
 		~BasicDump(); // Overrides Output class
 
@@ -36,6 +38,7 @@ class BasicDump : public Output {
 		// File output information
 		ofstream *myLog;
 		ofstream *myData;
+		ofstream *myPostData;
 
 };
 
