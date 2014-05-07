@@ -68,6 +68,11 @@ std::string LambdaCDM::init(double data[], double time, Parameters &params, IniR
 	// where S = \int d^4x \sqrt{-g} ( m_P^2/2 R - Lambda ) defines Lambda
 	OmegaLambda = init.getiniDouble("OmegaLambda", 0.7, section);
 
+	// Check to see if we want an exact value for OmegaLambda based on the other values in the cosmology
+	if (init.getiniBool("precise", false, section)) {
+		OmegaLambda = 1 - params.OmegaK() - params.OmegaM() - params.OmegaR();
+	}
+
 	// Construct H
 	// Temporary variable
 	double temp;

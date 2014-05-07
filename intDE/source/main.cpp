@@ -73,11 +73,18 @@ int main(int argc, char* argv[]) {
 	// Set up the filenames to output
 	string outputdir = inifile.getiniString("logdir", "logs", "Function");
 	string basename = inifile.getiniString("runname", "run", "Function");
-	// Go and find our appropriate file name (using 4 digit numbers)
-	string outputname = getfilename(outputdir, basename, inifile.getiniInt("numberpad", 4, "Function"));
+	string postname = inifile.getiniString("postname", "d", "Function");
+	// Go and find our appropriate file name (using 4 digit numbers as the default)
+	string outputname = getfilename(outputdir, basename, postname, inifile.getiniInt("numberpad", 4, "Function"));
 
 	// Set up the output class
-	Output *myOutput = new BasicDump(outputname);
+	parsestring = inifile.getiniString("outputclass", "BasicDump", "Function");
+	Output *myOutput;
+	if (parsestring == "BasicDump")
+		myOutput = new BasicDump(outputname, postname);
+	else
+		myOutput = new BasicDump(outputname, postname);    // BasicDump is the default
+
 	// Check that output is a go
 	if (!myOutput->filesready()) {
 		cerr << "Unable to open files for output." << endl;
@@ -107,15 +114,40 @@ int main(int argc, char* argv[]) {
 	cout << "Beginning evolution of " << myModel->classname() << " model" << endl;
 	cout << "Outputting to " << outputname << endl;
 
+	// Initialize vectors to store Hubble and redshift data
+	vector<double> hubble;
+	vector<double> redshift;
+
 	// Start timing!
 	boost::timer::cpu_timer myTimer;
 
 	// Do the evolution!
-	result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput, *myChecker);
+	result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput, *myChecker, hubble, redshift);
 
 	// Print a goodbye message, using time in milliseconds
 	myTimer.stop();
 	myOutput->printfinish(myTimer.elapsed().wall / 1e6);
+
+	// Perform postprocessing, depending on the result of the integration (and of course, the options)
+	if (result == 0 && inifile.getiniBool("postprocess", false, "Function") == true) {
+		cout << "Beginning postprocessing." << endl;
+		// Get the output class to print any headings
+		myOutput->postprintheading();
+		// Start timing!
+		boost::timer::cpu_timer myPostTimer;
+		// We have H and z starting with high z going to z = 0. We want these reversed.
+		reverse(hubble.begin(),hubble.end());
+		reverse(redshift.begin(),redshift.end());
+		// Perform the postprocessing
+		result = PostProcessing(hubble, redshift, *myIntParams, *myOutput);
+		// Report done
+		myPostTimer.stop();
+		cout << "Postprocessing completed in " << setprecision(4) << myPostTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
+	}
+	else if (result == -1 && inifile.getiniBool("postprocess", false, "Function") == true) {
+		// Postprocessing cannot occur because integration did not finish
+		myOutput->printlog("Postprocessing did not occur because integration did not reach a=1.");
+	}
 
 	// Clean up
 	delete myChecker;
@@ -125,18 +157,22 @@ int main(int argc, char* argv[]) {
 	delete myModel;
 	delete myIntegrator;
 
-	// Exit gracefully with result from integration
-	return result;
+	// Exit gracefully
+	return 0;
 }
 
-int BeginEvolution(Integrator &integrator, IntParams &params, double data[], const double starttime, const double endtime, Output &output, Consistency &check) {
+int BeginEvolution(Integrator &integrator, IntParams &params, double data[],
+		const double starttime, const double endtime, Output &output, Consistency &check,
+		vector<double>& hubble, vector<double>& redshift) {
 	// This routine takes in a number of parameters, and performs the cosmological background evolution
 	// integrator is the class that handles integration steps
 	// params is the class that stores the cosmological parameters
 	// data is an array of three elements that stores a, \phi, and \dot{\phi}. This is the data that gets evolved
 	// starttime stores the starting value of conformal time for the evolution
 	// endtime stores a value of conformal time after which we should stop the evolution
-	// model is a class that computes the equations of motion
+	// output is a class that writes things to the screen and output files
+	// check is a class that checks the data for internal self-consistency (e.g., ghosts, superluminality, etc)
+	// hubble and redshift are vectors used for storing this data for the purpose of postprocessing
 
 	// We need our own time variable to step forwards
 	double time = starttime;
@@ -155,6 +191,9 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 	output.printheading();
 	// Extract the initial state from the model
 	params.getmodel().getstate(data, time, status, params.getparams());
+	// Add the starting hubble and redshift values to the vectors
+	hubble.push_back(status[3]);
+	redshift.push_back(status[2]);
 	// Write the initial conditions
 	output.printstep(data, time, params, status);
 	// Do a consistency check on the initial conditions
@@ -214,6 +253,10 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 		// Extract the state from the model
 		params.getmodel().getstate(data, time, status, params.getparams());
 
+		// Add the hubble and redshift values to the vectors
+		hubble.push_back(status[3]);
+		redshift.push_back(status[2]);
+
 		// Get the output class to write out the state of the system
 		output.printstep(data, time, params, status);
 
@@ -249,10 +292,17 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[], con
 		}
 	}
 
+	// Return -1 if we didn't get to a = 1
+	if (data[0] < 1.0) {
+		output.printlog("Did not reach a=1 during expected evolution time.");
+		return -1;
+	}
+
 	// Take a look at the consistency of the final state
 	check.checkfinal(data, time, params, output, status);
 
-	return result;
+	// Return success!
+	return 0;
 }
 
 int intfunc(double t, const double data[], double derivs[], void *params) {
@@ -268,7 +318,7 @@ int intfunc(double t, const double data[], double derivs[], void *params) {
 
 }
 
-string getfilename(const std::string &dir, const std::string &filebase, const int padding) {
+string getfilename(const std::string &dir, const std::string &filebase, const std::string &postbase, const int padding) {
 	// This routine takes in a directory and an output name
 	// It goes and finds the first available filename of the form dir / filebase 00001 etc
 	// eg., dir/run00001.log and dir/run00001.dat
@@ -300,6 +350,8 @@ string getfilename(const std::string &dir, const std::string &filebase, const in
 		if (exists(dir + "/" + filebase + filenum + ".log"))
 			continue;
 		if (exists(dir + "/" + filebase + filenum + ".dat"))
+			continue;
+		if (exists(dir + "/" + filebase + filenum + postbase + ".dat"))
 			continue;
 
 		// If we got to here, we have a unique filename; return it

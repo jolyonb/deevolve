@@ -73,6 +73,11 @@ std::string ConstW::init(double data[], double time, Parameters &params, IniRead
 	// Also extract w from the ini file
 	EOSw = init.getiniDouble("EOSw", -1.0, section);
 
+	// Check to see if we want an exact value for OmegaLambda based on the other values in the cosmology
+	if (init.getiniBool("precise", false, section)) {
+		OmegaLambda = 1 - params.OmegaK() - params.OmegaM() - params.OmegaR();
+	}
+
 	// Construct H
 	// Temporary variable
 	double temp;

@@ -43,16 +43,48 @@ void BasicDump::printstep(const double data[], const double time, const IntParam
 
 }
 
+// Function to print a header before postprocessed output starts (e.g., column headings)
+void BasicDump::postprintheading() {
+
+	// Dumping everything. Make nice headers.
+	//*myData << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
+	*myLog << "Columns in post-processed data file are as follows."
+		   << endl
+		   << "redshift, H, DC, DM, DA, DL, mu"
+		   << endl << endl;
+
+	// Set up the output form
+	*myPostData << scientific;
+	myPostData->precision(15);
+
+}
+
+// Function to print information after each timestep
+void BasicDump::postprintstep(const double z, const double H, const double DC, const double DM, const double DA, const double DL, const double mu) {
+
+	// We are just dumping everything here
+	*myPostData << z << ", "
+			    << H << ", "
+			    << DC << ", "
+			    << DM << ", "
+			    << DA << ", "
+			    << DL << ", "
+			    << mu << endl;
+
+}
+
 // Constructor
-BasicDump::BasicDump(const std::string &filename) {
+BasicDump::BasicDump(const std::string &filename, const std::string &postname) {
 
 	// Construct filenames
 	string logfile = filename + ".log";
 	string datfile = filename + ".dat";
+	string postdatfile = filename + postname + ".dat";
 
 	// Open the log files
 	myLog = new ofstream(logfile.c_str());
 	myData = new ofstream(datfile.c_str());
+	myPostData = new ofstream(postdatfile.c_str());
 
 }
 
@@ -62,17 +94,19 @@ BasicDump::~BasicDump() {
 	// Close the log files...
 	myLog->close();
 	myData->close();
+	myPostData->close();
 
 	// ... and release memory
 	delete myLog;
 	delete myData;
+	delete myPostData;
 
 }
 
 // Did the files open correctly?
 bool BasicDump::filesready() {
 
-	if (myLog->is_open() && myData->is_open())
+	if (myLog->is_open() && myData->is_open() && myPostData->is_open())
 		return true;
 	else
 		return false;
