@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
 		reverse(hubble.begin(),hubble.end());
 		reverse(redshift.begin(),redshift.end());
 		// Perform the postprocessing
-		result = PostProcessing(hubble, redshift, *myIntParams, *myOutput);
+		result = PostProcessing(hubble, redshift, *myIntParams, *myOutput, inifile);
 		// Report done
 		myPostTimer.stop();
 		cout << "Postprocessing completed in " << setprecision(4) << myPostTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
