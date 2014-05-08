@@ -27,6 +27,7 @@
 #include "inireader.h"
 #include "linearw.h"
 #include "kessence.h"
+#include "KGB.h"
 #include "process.h"
 
 #include <iostream>

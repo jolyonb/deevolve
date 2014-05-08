@@ -46,6 +46,8 @@ int main(int argc, char* argv[]) {
 		myModel = new LinearW();
 	else if (parsestring == "Kessence")
 		myModel = new Kessence();
+	else if (parsestring == "KGB")
+		myModel = new KGB();
 	else
 		myModel = new LambdaCDM();    // LambdaCDM is the default
 
