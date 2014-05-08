@@ -125,6 +125,14 @@ int KGB::computelagrangian(const double data[]) {
 	
 //	L = V - L3 * boxphi;
 
+
+	//  Useful parameterizations:
+	// V = c_2X^n,
+	// L3 = c_3 X^m
+	// .. "generalized galileon"
+	// Could also easily add in potential terms.
+	
+	
 	// Store the data for which these results are correct
 	for (int i = 0; i < 4; i++)
 		storeddata[i] = data[i];
@@ -220,6 +228,8 @@ std::string KGB::init(double data[], double time, Parameters &params, IniReader 
 	double a2 = pow(a, 2.0);
 
 	// Calculate H^2
+	
+	/// NEED to modify this for computing the initial Hubble for KGB
 	temp = params.OmegaM() / a + params.OmegaR() / a2 + params.OmegaK() + a2 * energydensity(data);
 
 	// Calculate H
