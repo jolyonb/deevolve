@@ -1,8 +1,8 @@
-#include "constw.h"
+#include "linearw.h"
 
 // The derivatives routine is given the state of the system (a, phi and \dot{\phi}) as well as the parameters of the system,
 // and returns the derivatives (\dot{a}, \dot{\phi}, \ddot{\phi}, \dot{H})
-int ConstW::derivatives(const double data[], double derivs[], Parameters &params) {
+int LinearW::derivatives(const double data[], double derivs[], Parameters &params) {
 
 	// The first section here is model independent
 
@@ -35,26 +35,20 @@ int ConstW::derivatives(const double data[], double derivs[], Parameters &params
 }
 
 // Returns the ratio rho_Q/rho_c
-double ConstW::energydensity(const double data[]){
+double LinearW::energydensity(const double data[]){
 	// Extract data for easier reading of the code
 	double a = data[0];
-	double phi = data[1];
-	double phidot = data[2];
-	double hubble = data[3];
 
-	// Your code here
-	return pow(a, - 3.0 * (1.0 + EOSw)) * OmegaLambda;
+	// The formula for energy density is rho = rho_0 a^(-3(1 + w0 + wa)) e^(3 wa (a - 1))
+	return pow(a, - 3.0 * (1.0 + w0 + wa)) * exp(3 * wa * (a - 1)) * OmegaLambda;
 }
 // Returns the ratio P_Q/rho_c
-double ConstW::pressure(const double data[], const double hdot){
+double LinearW::pressure(const double data[], const double hdot){
 	// Extract data for easier reading of the code
 	double a = data[0];
-	double phi = data[1];
-	double phidot = data[2];
-	double hubble = data[3];
 
-	// Your code here
-	return EOSw * energydensity(data);
+	// Just take advantage of the equation of state
+	return (w0 + wa * (1 - a)) * energydensity(data);
 }
 
 /* This function does four things:
@@ -63,15 +57,16 @@ double ConstW::pressure(const double data[], const double hdot){
  * - Initializes the value of H using the Friedmann equation
  * - Returns a log output
  */
-std::string ConstW::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+std::string LinearW::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
 
 	// Set the name of the class
-	section = "ConstW";
+	section = "LinearW";
 
 	// Go and extract Omega_Lambda from the ini file
 	OmegaLambda = init.getiniDouble("OmegaLambda", 0.7, section);
-	// Also extract w from the ini file
-	EOSw = init.getiniDouble("EOSw", -1.0, section);
+	// Also extract w0 and wa from the ini file
+	w0 = init.getiniDouble("w0", -1.0, section);
+	wa = init.getiniDouble("wa", 0.0, section);
 
 	// Check to see if we want an exact value for OmegaLambda based on the other values in the cosmology
 	if (init.getiniBool("precise", false, section)) {
@@ -100,7 +95,7 @@ std::string ConstW::init(double data[], double time, Parameters &params, IniRead
 
 	// Return a string to print to the log
 	std::stringstream output;
-	output << "Running ConstW model with Omega_Lambda = " << OmegaLambda << " and w = " << EOSw << std::endl;
+	output << "Running LinearW model with Omega_Lambda = " << OmegaLambda << ", w0 = " << w0 << " and wa = " << wa << std::endl;
 	return output.str();
 
 }

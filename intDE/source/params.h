@@ -10,16 +10,20 @@
 #define PARAMS_H_
 
 #include <cmath>
+#include <iostream>
 
 class Parameters {
 	public:
 
 		// Constructor. Sets the parameters of the model, which cannot be changed afterwards
-		Parameters(const double OmegaM, const double Tgamma, const double OmegaK, const double z0, const double h) {
+		Parameters(const double OmegaM, const double OmegaB, const double Tgamma, const double OmegaK, const double z0, const double h) {
 
 			const double hubble0conv = 3.24e-18; // This is 100 km/s/Mpc in units of s^-1
 
 			mOmegaM = OmegaM;
+			mOmegaB = OmegaB;
+			if (mOmegaM < mOmegaB) // Make sure that fraction of baryonic matter is contained in fraction of matter
+				mOmegaB = mOmegaM;
 			mOmegaK = OmegaK;
 			mT = Tgamma;
 			mh = h;
@@ -45,10 +49,23 @@ class Parameters {
 			// Also need a factor of 7/8 for fermions.
 			mOmegaR *= 1 + 21.0 * pow(4.0/11.0, 4.0/3.0) / 8.0;
 
+			// Calculate DH = c/H0 in Mpc (used in distance measurements)
+			mDH = c / 1000.0 / 100.0 / mh;
+
+			// Calculate redshift of recombination (CMB formation)
+			// Computed using Eq E.1 from astro-ph/9510117v2 (note that Omega_0 = Omega_m) for percent level accuracy
+			double g1;
+			double g2;
+			double OmegaBh2 = mOmegaB * mh * mh;
+			g1 = 0.0783 * pow( OmegaBh2, -0.238) / (1 + 39.5 * pow(OmegaBh2, 0.763));
+			g2 = 0.560 / (1 + 21.1 * pow(OmegaBh2, 1.81));
+			mzcmb = 1048 * (1 + 0.00124 * pow(OmegaBh2, -0.738)) * (1 + g1 * pow(mOmegaM * mh * mh, g2));
+
 		}
 
 		// Getters for the parameters of the model
 		inline double OmegaM () {return mOmegaM;}  // Energy fraction of matter today
+		inline double OmegaB () {return mOmegaB;}  // Energy fraction of baryonic matter today
 		inline double OmegaR () {return mOmegaR;}  // Energy fraction of radiation today
 		inline double OmegaK () {return mOmegaK;}  // Energy fraction of spatial curvature today
 		inline double Tgamma () {return mT;}       // Temperature of photons today
@@ -56,10 +73,13 @@ class Parameters {
 		inline double H0 () {return mH0;}          // Hubble parameter today (in s^-1)
 		inline double z0 () {return mz0;}          // Redshift to start the evolution at
 		inline double rhoc () {return mrhoc;}      // Critical energy density (today), in units of eV^4
+		inline double DH () {return mDH;}          // Hubble distance in Mpc, c/H0
+		inline double zCMB () {return mzcmb;}      // Redshift of recombination
 
 	private:
 		// Internal storage for values
 		double mOmegaM;
+		double mOmegaB;
 		double mOmegaR;
 		double mOmegaK;
 		double mT;
@@ -67,6 +87,8 @@ class Parameters {
 		double mH0;
 		double mz0;
 		double mrhoc;
+		double mDH;
+		double mzcmb;
 
 };
 

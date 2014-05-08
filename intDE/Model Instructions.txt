@@ -24,9 +24,13 @@ class <Name> : public Model {
 		void getstate(const double data[], const double time, double info[], Parameters &params);
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
 		double speedofsound2(const double data[]);
-		bool implementsSOS();
+		bool implementsSOS() {return true;}
 		bool isghost(const double data[]);
-		bool implementsghost();
+		bool implementsghost() {return true;}
+		double speedoftensor2(const double data[]);
+		bool implementsSOT() {return true;}
+		bool istensorghost(const double data[]);
+		bool implementstensorghost() {return true;}
 
 	private:
 		// Here are some overridden internal functions. They're pretty self-explanatory.
@@ -47,6 +51,10 @@ Choose what functionality you want your class to have! The above template includ
 - implementsSOS and speedofsound2 are used for the speed of sound calculations. Remove both if you aren't using them.
 
 - isghost and implementsghost are used to check if perturbations become ghostlike. Remove both if you aren't using them.
+
+- speedoftensor2 and implementsSOT are used for the speed of tensor perturbations calculations. Remove both if you aren't using them.
+
+- istensorghost and implementstensorghost are used to check if tensor perturbations are ghostlike. Remove both if you aren't using them.
 
 - getstate has a default implementation that will probably work for your model. It will only fail if you have different definitions of matter/radiation energy density than what we've implemented, usually because you're doing some funny counting with a nonminimally coupled model. You can probably just use ours, but do check.
 

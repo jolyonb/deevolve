@@ -20,10 +20,18 @@ class Quintessence : public Model {
 		// Here are the functions that are overridden by the quintessence class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
-		double speedofsound2(const double data[]);
-		bool implementsSOS();
-		bool isghost(const double data[]);
-		bool implementsghost();
+
+		// The speed of sound/tensors and ghost checks are all trivial for quintessence
+		double speedofsound2(const double data[]) {return 1.0;} // The speed of sound in quintessence is always 1.
+		bool implementsSOS() {return true;}
+		bool isghost(const double data[]) {return false;} // Quintessence is never ghost-like
+		bool implementsghost() {return true;}
+
+		double speedoftensor2(const double data[]) {return 1.0;} // The speed of tensor perturbations in quintessence is always 1.
+		bool implementsSOT() {return true;}
+		bool istensorghost(const double data[]) {return false;} // Quintessence is never ghost-like
+		bool implementstensorghost() {return true;}
+
 
 	private:
 		// Here are some overridden internal functions. They're pretty self-explanatory.

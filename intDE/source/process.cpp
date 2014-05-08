@@ -174,9 +174,10 @@ int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &
 	}
 
 
-	// Step 4: Output all data
+	// Step 4: Output all data. Convert all distance measurements to Mpc
+	double DH = params.getparams().DH();
 	for (int i = 0; i < numrows; i++) {
-		output.postprintstep(redshift[i], hubble[i], DC[i], DM[i], DA[i], DL[i], mu[i]);
+		output.postprintstep(redshift[i], hubble[i], DC[i] * DH, DM[i] * DH, DA[i] * DH, DL[i] * DH, mu[i]);
 	}
 
 	// Success!
