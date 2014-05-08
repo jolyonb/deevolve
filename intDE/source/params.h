@@ -10,7 +10,6 @@
 #define PARAMS_H_
 
 #include <cmath>
-#include <iostream>
 
 class Parameters {
 	public:

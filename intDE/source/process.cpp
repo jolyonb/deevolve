@@ -10,20 +10,22 @@
 #include "process.h"
 
 using namespace std;
+using namespace boost::filesystem;
 
-int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &params, Output &output) {
+int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &params, Output &output, IniReader &init) {
 	// Takes in a vector of hubble values and z values (in ascending z order)
 	// Also takes in some basic parameters about the cosmology
 	// as well as the output class
 	// Computes distance measures
+	// If requested in the ini file, also computes chi squared values
 
 	// Store the number of rows
 	int numrows = hubble.size();
 
 	// Step 1: Construct an interpolation of H and z
 	// Trick: Get a pointer to the array for H and z
-	double* H = &hubble[0];
-	double* z = &redshift[0];
+	double* pH = &hubble[0];
+	double* pz = &redshift[0];
 
 	// Initialize the spline
 	splinetools myspline;
@@ -31,7 +33,7 @@ int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &
 	myspline.spline = gsl_spline_alloc(gsl_interp_cspline, numrows);
 
 	// Construct the spline
-	gsl_spline_init (myspline.spline, z, H, numrows);
+	gsl_spline_init (myspline.spline, pz, pH, numrows);
 
 	// To get the value from the spline, use the following command
 	// H(z) = gsl_spline_eval (myspline.spline, z, myspline.acc);
@@ -173,15 +175,27 @@ int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &
 		mu.push_back(25 + 5 * log10 (DL[i] * conh));
 	}
 
+	// At z = 0, all distance measures are zero, H = 1, and mu = -infinity.
+	// This is a problem for mu in particular.
+	// For this reason, we remove the first entry of each distance measurement when reporting data.
 
 	// Step 4: Output all data. Convert all distance measurements to Mpc
 	double DH = params.getparams().DH();
-	for (int i = 0; i < numrows; i++) {
-		output.postprintstep(redshift[i], hubble[i], DC[i] * DH, DM[i] * DH, DA[i] * DH, DL[i] * DH, mu[i]);
+	for (int i = 1; i < numrows; i++) {
+		DC[i] *= DH;
+		DM[i] *= DH;
+		DL[i] *= DH;
+		DA[i] *= DH;
+		output.postprintstep(redshift[i], hubble[i], DC[i], DM[i], DA[i], DL[i], mu[i]);
 	}
 
+	// Do we wish to compute chi^2 values?
+	int result = 0;
+	if (init.getiniBool("chisquared", false, "Function") == true)
+		result = calcchisquared(redshift, hubble, DC, DM, DA, DL, mu, params, output, init);
+
 	// Success!
-	return 0;
+	return result;
 }
 
 int PPintfunc(double z, const double data[], double derivs[], void *params) {
@@ -201,4 +215,105 @@ int PPintfunc(double z, const double data[], double derivs[], void *params) {
 	// Return success!
 	return GSL_SUCCESS;
 
+}
+
+int calcchisquared(vector<double>& redshift,
+		           vector<double>& hubble,
+		           vector<double>& DC,
+		           vector<double>& DM,
+		           vector<double>& DA,
+		           vector<double>& DL,
+		           vector<double>& mu,
+		           IntParams &params, Output &output, IniReader &init) {
+	// This routine computes chi squared values from the various distance measurements
+	// It uses the calculated data that is now passed in
+
+	// Step 1: We will need to know all these values at specific redshifts. Construct the required interpolaters.
+
+	// Trick: Get pointers to the various arrays
+	// At z = 0, all distance measures are zero, H = 1, and mu = -infinity.
+	// This is a problem for mu in particular.
+	// For this reason, we remove the first entry of each distance measurement when constructing the interpolation.
+	double* pH = &hubble[1];
+	double* pz = &redshift[1];
+	double* pDC = &DC[1];
+	double* pDM = &DM[1];
+	double* pDA = &DA[1];
+	double* pDL = &DL[1];
+	double* pmu = &mu[1];
+	int numrows = hubble.size() - 1;
+
+	// Initialize the splines
+	// Distance modulus is used for the SN1a data
+	splinetools muspline;
+	muspline.acc = gsl_interp_accel_alloc();
+	muspline.spline = gsl_spline_alloc(gsl_interp_cspline, numrows);
+
+	// Construct the spline
+	gsl_spline_init (muspline.spline, pz, pmu, numrows);
+
+	// Step 2: Read in all of the data from the SN1a data
+	string sn1afile = init.getiniString("union21", "SCPUnion2.1_mu_vs_z.txt", "Function");
+	// Check that the file exists before further processing
+	if (exists(sn1afile)) {
+		// Begin by reading in the data file
+		ifstream f(sn1afile.c_str());
+		string l;
+		vector<vector<double> > rows; // This is a vector of vectors
+
+		// Read in the file one line at a time into the string l
+		while(getline(f, l)) {
+			// If the first character is a # (comment), move onto the next line
+			if (l[0] == '#')
+				continue;
+			// Convert the string l into a stringstream s
+			stringstream s(l);
+			string extract;
+			double entry;
+			vector<double> row;
+			// Extract entries one at a time, using a tab as a delimiter
+			// Ignore the first entry, which is the supernovae name
+			bool first = true;
+			while(getline(s, extract, '\t')) {
+				if (first) {
+					first = false;
+				} else {
+				    row.push_back(atof(extract.c_str()));
+				}
+			}
+			rows.push_back(row);
+		}
+
+		// rows now contains a vector of doubles. Each row is the data from a supernovae.
+		// Each row contains four pieces of information: redshift, luminosity distance, error on luminosity distance, and a piece of
+		// information that is not of use to us.
+
+		// Iterate through each row, and construct the chi^2
+		double chi2 = 0;
+		double val = 0;
+		for (int i = 0; i < rows.size(); i++) {
+			// Add (DL - DL(z))^2 / sigma^2 to the chi^2
+			val = (rows[i][1] - gsl_spline_eval (muspline.spline, rows[i][0], muspline.acc)) / rows[i][2];
+			chi2 += val * val;
+		}
+
+		// Having gotten here, present the results
+		std::stringstream printing;
+		printing << "SN1a chi^2 computed from " << rows.size() << " data points." << endl;
+		printing << "chi^2 = " << chi2 << endl;
+		output.printlog(printing.str());
+		// The minimum chi^2 for LambdaCDM for this data set is 562.5
+
+	}
+	else {
+		// Could not find data file
+		output.printlog("Error: cannot find Union2.1 SN1a data file.");
+	}
+
+	// Release the spline memory
+	gsl_spline_free (muspline.spline);
+	gsl_interp_accel_free (muspline.acc);
+
+	// Return success
+	return 0;
 }
