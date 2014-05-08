@@ -54,6 +54,17 @@ class Model {
 		// The implementsghost function returns whether or not a class actually implements the isghost function
 		virtual bool implementsghost() {return false;}
 
+		// The speedoftensor2 returns the speed of tensor perturbations squared, given the state of the system
+		virtual double speedoftensor2(const double data[]) {return 0;}
+		// The implementsSOT function returns whether or not a class actually implements the speedoftensor2 function
+		virtual bool implementsSOT() {return false;}
+
+		// The istensorghost function is given the state of the system
+		// and returns whether or not the tensor perturbations have become ghostlike
+		virtual bool istensorghost(const double data[]) {return false;}
+		// The implementstensorghost function returns whether or not a class actually implements the istensorghost function
+		virtual bool implementstensorghost() {return false;}
+
 		// Virtual destructor
 		virtual ~Model() {return;}
 
@@ -64,7 +75,7 @@ class Model {
 		// Functions to return the energy density (given the data), and the pressure (given data and \dot{H})
 		virtual double energydensity(const double data[]) = 0;
 		virtual double pressure(const double data[], const double hdot) = 0;
-		// Name of the class. Should set in the init routine. Used as the section name in the ini file.
+		// Name of the class. Should be set in the init routine. Used as the section name in the ini file.
 		std::string section;
 };
 

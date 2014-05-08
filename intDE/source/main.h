@@ -25,7 +25,7 @@
 #include "consistency.h"
 #include "simplecheck.h"
 #include "inireader.h"
-#include "constw.h"
+#include "linearw.h"
 #include "kessence.h"
 #include "process.h"
 

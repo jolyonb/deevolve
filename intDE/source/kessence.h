@@ -17,10 +17,17 @@ class Kessence : public Model {
 		// Here are the functions that are overridden by the quintessence class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
+
+		// The speed of sound and scalar ghost conditions need to be calculated for k-essence
 		double speedofsound2(const double data[]);
-		bool implementsSOS();
+		bool implementsSOS() {return true;}
 		bool isghost(const double data[]);
-		bool implementsghost();
+		bool implementsghost() {return true;}
+		// The speed of tensor perturbations are unchanged from GR however
+		double speedoftensor2(const double data[]) {return 1.0;} // The speed of tensor perturbations in k-essence is always 1.
+		bool implementsSOT() {return true;}
+		bool istensorghost(const double data[]) {return false;} // k-essence is never ghost-like
+		bool implementstensorghost() {return true;}
 
 	private:
 		// Here are some overridden internal functions. They're pretty self-explanatory.

@@ -172,10 +172,6 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 
 }
 
-// The implementsSOS function returns whether or not a class actually implements the speedofsound2 function
-bool Kessence::implementsSOS() {
-	return true;
-}
 // The speedofsound2 returns the speed of sound squared, given the state of the system
 double Kessence::speedofsound2(const double data[]) {
 	// The speed of sound in k-essence can vary from 1.
@@ -187,10 +183,6 @@ double Kessence::speedofsound2(const double data[]) {
 	return LX / (LX + 2.0 * X * LXX);
 }
 
-// The implementsghost function returns whether or not a class actually implements the isghost function
-bool Kessence::implementsghost() {
-	return true;
-}
 // The isghost function is given the state of the system and returns whether or not the theory has become ghostlike
 bool Kessence::isghost(const double data[]) {
 	// K-essence becomes ghost-like when the denominator in the speed of sound squared becomes negative.

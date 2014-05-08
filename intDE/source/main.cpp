@@ -42,8 +42,8 @@ int main(int argc, char* argv[]) {
 	std::string parsestring = inifile.getiniString("model", "LambdaCDM", "Cosmology");
 	if (parsestring == "Quintessence")
 		myModel = new Quintessence();
-	else if (parsestring == "ConstW")
-		myModel = new ConstW();
+	else if (parsestring == "LinearW")
+		myModel = new LinearW();
 	else if (parsestring == "Kessence")
 		myModel = new Kessence();
 	else
@@ -51,8 +51,9 @@ int main(int argc, char* argv[]) {
 
 	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init and h (of H_0 = h * 100 km/s/Mpc)
 	Parameters *myParams = new Parameters(inifile.getiniDouble("Omegam", 0.3, "Cosmology"),
+										  inifile.getiniDouble("Omegab", 0.05, "Cosmology"),
 			                              inifile.getiniDouble("Tgamma", 2.72548, "Cosmology"),
-			                              inifile.getiniDouble("Omegak", 0.01, "Cosmology"),
+			                              inifile.getiniDouble("Omegak", 0.0, "Cosmology"),
 			                              inifile.getiniDouble("zInit", 1.0e4, "Cosmology"),
 			                              inifile.getiniDouble("Hubbleh", 0.7, "Cosmology"));
 
@@ -148,6 +149,8 @@ int main(int argc, char* argv[]) {
 		// Postprocessing cannot occur because integration did not finish
 		myOutput->printlog("Postprocessing did not occur because integration did not reach a=1.");
 	}
+
+	// Perform chi^2 computation; compute reference chi^2 for LambdaCDM model and construct delta chi^2 for this
 
 	// Clean up
 	delete myChecker;

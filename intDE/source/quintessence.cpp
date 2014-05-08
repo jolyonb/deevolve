@@ -196,23 +196,3 @@ double Quintessence::pressure(const double data[], const double hdot){
 
 	return (0.5 * pow(phidot / a, 2.0) - potential(phi)) / 3;
 }
-
-// The implementsSOS function returns whether or not a class actually implements the speedofsound2 function
-bool Quintessence::implementsSOS() {
-	return true;
-}
-// The speedofsound2 returns the speed of sound squared, given the state of the system
-double Quintessence::speedofsound2(const double data[]) {
-	// The speed of sound in quintessence is always 1.
-	return 1.0;
-}
-
-// The implementsghost function returns whether or not a class actually implements the isghost function
-bool Quintessence::implementsghost() {
-	return true;
-}
-// The isghost function is given the state of the system and returns whether or not the theory has become ghostlike
-bool Quintessence::isghost(const double data[]) {
-	// Quintessence is never ghost-like
-	return false;
-}

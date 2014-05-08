@@ -9,11 +9,13 @@ void BasicDump::printinfo(const double data[], IntParams &params) {
 	// Print the header
 	*myLog << "Omega_m: \t" << params.getparams().OmegaM() << endl;
 	*myLog << "Omega_k: \t" << params.getparams().OmegaK() << endl;
-	*myLog << "T_gamma: \t" << params.getparams().Tgamma() << endl;
+	*myLog << "T_gamma: \t" << params.getparams().Tgamma() << " K" << endl;
 	*myLog << "Omega_r: \t" << params.getparams().OmegaR() << endl;
 	*myLog << "h: \t" << params.getparams().h() << endl;
 	*myLog << "z_init: \t" << params.getparams().z0() << endl;
-	*myLog << "rho_c: \t" << params.getparams().rhoc() << endl << endl;
+	*myLog << "rho_c: \t" << params.getparams().rhoc() << " (eV)^4" << endl;
+	*myLog << "z_CMB: \t" << params.getparams().zCMB() << endl;
+	*myLog << "DH: \t" << params.getparams().DH() << " Mpc" << endl << endl;
 
 }
 
@@ -48,7 +50,7 @@ void BasicDump::postprintheading() {
 
 	// Dumping everything. Make nice headers.
 	//*myData << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
-	*myLog << "Columns in post-processed data file are as follows."
+	*myLog << "Columns in post-processed data file are as follows. DC, DM, DA and DL are all in Mpc."
 		   << endl
 		   << "redshift, H, DC, DM, DA, DL, mu"
 		   << endl << endl;
