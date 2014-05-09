@@ -32,7 +32,7 @@ class KGB : public Model {
 		// Here are some overridden internal functions. They're pretty self-explanatory.
 		double pressure(const double data[], const double hdot);
 		double energydensity(const double data[]);
-
+		int commonterms(const double data[]);
 		// Just some parameters
 		double lambda;
 		double alpha;
@@ -44,7 +44,8 @@ class KGB : public Model {
 		int computelagrangian(const double data[]);
 		// Each time the stuff is calculated, store both the data and it, so as not to waste computation time
 		double storeddata[4];
-		double a2,a4,a8;
+		double a2,a4,a8, hubble;
+		double phidot, phidot2, phidot3, phidot4;
 		double X;
 		double L3;
 		double V;
@@ -57,7 +58,8 @@ class KGB : public Model {
 		double L3pp;
 		double L3Xp;
 		double L3XX;
-
+		double P1, P2, D, NV, NL3_1, NL3_2;
+		double cs2denom;
 };
 
 #endif /* KGB_H_ */

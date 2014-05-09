@@ -30,38 +30,21 @@ int KGB::derivatives(const double data[], double derivs[], Parameters &params) {
 	// and split the numerator N and denominator D
 	// into contributions from V & L3 separately.
 	// N = NV + NL3, D = DV + DL3.
+	// These are computed in the "computelagrangian" call.
 	
-	// Numerator for the "V"-part
-	double NV = a8*(a2*Vp+hubble*(VXX*phidot3/a2-2.0*VX*phidot)-VXp*phidot2); 
-	// Numerator for L3 part; since NL3 contains hubbledot, separate it out 
-	// NL3 = NL3_1 + NL3_2 * hubble
-	double NL3_1 = a4*(4.0*a4*hubble*phidot*L3p
-		+3.0*pow(hubble,2.0)*phidot4*L3XX*a4*phidot2*L3pp-4.0*a2*hubble*phidot3*L3X);
-	double NL3_2 = -a4*3.0*a2*phidot2*L3X;
-	// Denominator for "V" part
-	double DV = a8*(VXX*phidot2/a2 + VX);
-	// denominator for "L3" part
-	double DL3 = a4*(-2.0*a4*L3p+6.0*a2*hubble*phidot*L3X-a2*phidot2*L3X+3.0*L3XX*hubble*phidot3);
-	// Full denominator
-	double D = DV + DL3;
-	
-	// Finally, construct \ddot{phi} = N / D; for that we need hubbledot,
-	// and so we wait.
 
 	// Computing \dot{H}. This requires solving the acceleration equation for \dot{H}.
 	// Note that pressure does depend on \dot{H} in this model,
 	
 	// Write the pressure as P = P1 + P2\ddot(phi)
-	double P1 = (V-2.0*X/a2*(a2*L3p-L3X*hubble*phidot))/3.0;
-	double P2 = -2.0*X/a2*L3X/3.0;
-	// pressure = P1 + P2\ddot{phi}.
+	// P1 & P2 are computed in the "computelagrangian" call
 
-	// Split up the acceleration equation: H1 is all the standard contributions
+	// Split up the acceleration equation: H1 is all the "standard" contributions
 	double H1 = - 0.5 * pow(hubble, 2.0) - 0.5 * params.OmegaR() / a2 + 0.5 * params.OmegaK();
 	// put it all together and compute \dot{H}
-	derivs[3]=pow(1.0+1.5*a2*P2*NL3_2/D,-1.0) * (H1-1.5*a2*(P1+P2*(NV + NL3_1)/D));
+	derivs[3]=(H1-1.5*a2*(P1+P2*(NV+NL3_1)/D)) / (1.0+1.5*a2*P2*NL3_2/D);
 
-	// Now that we've computed hubbledot, can finish off the scalar field equation of motino:
+	// Now that we've computed hubbledot, can finish off the scalar field equation of motion:
 	derivs[2] = ( NV + NL3_1 + NL3_2 * derivs[3] ) / D;
 	
 	// To compute the pressure from the function, need to pass it \dot{H}
@@ -72,8 +55,7 @@ int KGB::derivatives(const double data[], double derivs[], Parameters &params) {
 	return GSL_SUCCESS;
 }
 
-// Function to calculate the Lagrangian and all its appropriate derivatives:
-// U, Up, Upp, UX, UXX, UXP
+// Function to calculate the Lagrangian and all its appropriate derivatives
 // The results array should be of length 6
 int KGB::computelagrangian(const double data[]) {
 	// First, check the data against the previous data
@@ -91,23 +73,15 @@ int KGB::computelagrangian(const double data[]) {
 	double phi = data[1];
 	// Compute the X quantity
 	X = pow(data[2] / data[0], 2.0) / 2.0;
-
-	// Calculate everything
-	// Below is a different choice of Lagrangian
-    // This Lagrangian is L = X + alpha X^n - beta e^{-lambda phi}
-    // (all suitably dimensionless)
-	// Quintessence has alpha = 0
-
-    // Here is the potential
-    double pot = beta * exp(- lambda * phi);
-    double dpot = - lambda * pot;
-
-	double a2 = pow(data[0],2.0);
-	double a4 = a2 * a2;
-	double a8 = a4 * a4;
+	
+	// Compute powers of a:
+	a2 = pow(data[0],2.0);
+	a4 = a2 * a2;
+	a8 = a4 * a4;
 
     // Here we construct the Lagrangian & important derivatives thereof.
-
+	// L = V(phi, X) - L3(phi, X) * boxphi;
+	
     // Construct the two functions V(phi, X) & L3(phi, X).
     V = 1.0;
 	L3 = 1.0;
@@ -123,14 +97,17 @@ int KGB::computelagrangian(const double data[]) {
 	L3XX = 1.0;
 	L3Xp = 1.0;
 	
-//	L = V - L3 * boxphi;
-
-
 	//  Useful parameterizations:
 	// V = c_2X^n,
 	// L3 = c_3 X^m
 	// .. "generalized galileon"
 	// Could also easily add in potential terms.
+	
+	
+	// Compute some commonly occuring terms in the equation of motion
+	// and acceleration equation.
+	
+	int res = commonterms(data);
 	
 	
 	// Store the data for which these results are correct
@@ -140,6 +117,45 @@ int KGB::computelagrangian(const double data[]) {
 	// Success!
 	return 0;
 }
+
+int KGB::commonterms(const double data[]){
+	hubble = data[3];
+	phidot = data[2];
+	phidot2 = phidot * phidot;
+	phidot3 = phidot * phidot2;
+	phidot4 = phidot2 * phidot2;
+	
+	// SCALAR FIELD EQUATION OF MOTION
+	
+	// \ddot\phi = N / D.
+	// NUMERATORS, N = NV + NL3_1 + NL3_2*hubbledot.
+	// Numerator for the "V"-part
+	NV = a8*(a2*Vp+hubble*(VXX*phidot3/a2-2.0*VX*phidot)-VXp*phidot2); 
+	NL3_1 = a4*(4.0*a4*hubble*phidot*L3p
+		+3.0*pow(hubble,2.0)*phidot4*L3XX*a4*phidot2*L3pp-4.0*a2*hubble*phidot3*L3X);
+	NL3_2 = -a4*3.0*a2*phidot2*L3X;
+	
+	// DENOMINATOR
+	
+	// Denominator for "V" part
+	double DV = a8*(VXX*phidot2/a2 + VX);
+	// denominator for "L3" part
+	double DL3 = a4*(-2.0*a4*L3p+6.0*a2*hubble*phidot*L3X-a2*phidot2*L3X+3.0*L3XX*hubble*phidot3);
+	// Full denominator
+	D = DV + DL3;
+
+	// Write the pressure as P = P1 + P2\ddot(phi)
+	P1 = (V-2.0*X/a2*(a2*L3p-L3X*hubble*phidot))/3.0;
+	P2 = -2.0*X/a2*L3X/3.0;
+	
+	// denominator in the sound speed
+	// Also computed to check stability.
+	cs2denom=a2*(-2.0*L3p+VX+2.0*X*(VXX-L3Xp)+6.0*pow(X*L3X,2.0));
+	cs2denom+=6.0*hubble*(L3X+X*L3XX)*phidot;
+	
+	return 0;
+	
+} // END commonterms()
 
 // Returns the ratio rho_Q/rho_c
 double KGB::energydensity(const double data[]){
@@ -152,13 +168,11 @@ double KGB::energydensity(const double data[]){
 	
 	// Compute quantities
 	int result = computelagrangian(data);
-	
-	// for ease, compute rho for the k-essence case
-	double rhok=2.0*X*VX-V;
-	
+
 	// Now construct energy/3 for KGB
-	return (rhok+2.0*X/a2*(-a2*L3p+3.0*L3X*hubble*phidot))/3.0;
+	return (2.0*X*VX-V+2.0*X/a2*(-a2*L3p+3.0*L3X*hubble*phidot))/3.0;
 }
+
 // Returns the ratio P_Q/rho_c
 double KGB::pressure(const double data[], const double hdot){
 	// Extract data for easier reading of the code
@@ -173,32 +187,14 @@ double KGB::pressure(const double data[], const double hdot){
 	// Compute quantities
 	int result = computelagrangian(data);
 
-
-	// To compute the pressure, we have to use hdot (i.e. \dot{H}) 
-	// instead of \ddot{\phi}.
-	// First, compute \ddot{phi} = N / D,
+	// P = P1 + P2 * phidotdot.
+	// phidotdot = N / D,
 	// with N = NV + NL3_1 + NL3_2*hdot,
 	// and D = DV + DL3.
+	// These were calculated inside "commonterms", 
+	// called from "computelagrangian".
 	
-	// Numerator for the "V"-part
-	double NV = a8*(a2*Vp+hubble*(VXX*phidot3/a2-2.0*VX*phidot)-VXp*phidot2); 
-	// Numerator for L3 part; since NL3 contains hubbledot, separate it out 
-	// NL3 = NL3_1 + NL3_2 * hubble
-	double NL3_1 = a4*(4.0*a4*hubble*phidot*L3p
-		+3.0*pow(hubble,2.0)*phidot4*L3XX*a4*phidot2*L3pp-4.0*a2*hubble*phidot3*L3X);
-	double NL3_2 = -a4*3.0*a2*phidot2*L3X;
-	// Denominator for "V" part
-	double DV = a8*(VXX*phidot2/a2 + VX);
-	// denominator for "L3" part
-	double DL3 = a4*(-2.0*a4*L3p+6.0*a2*hubble*phidot*L3X-a2*phidot2*L3X+3.0*L3XX*hubble*phidot3);
-	// Full denominator
-	double D = DV + DL3;
-	// Hence, we have now computed
-	// phidotdot = (NV + NL3_1 + NL3_2*hdot) / D.
 	
-	// Write the pressure as P = P1 + P2\ddot(phi)
-	double P1 = (V-2.0*X/a2*(a2*L3p-L3X*hubble*phidot))/3.0;
-	double P2 = -2.0*X/a2*L3X/3.0;
 	// Now put the above bit in for \ddot{\phi}.
 	return P1 + P2 * (NV + NL3_1 + NL3_2 * hdot) / D;
 }
@@ -259,17 +255,17 @@ double KGB::speedofsound2(const double data[]) {
 	int result = computelagrangian(data);
 
 	// Compute numerator of cs2
-	double numer = a2*(-2.0*L3p+VX+2.0*L3Xp*X-2.0*pow(X*L3X,2.0));
-	numer+= 2.0*hubble*(L3X-X*L3XX)*phidot;
+	double cs2numer = a2*(-2.0*L3p+VX+2.0*L3Xp*X-2.0*pow(X*L3X,2.0));
+	cs2numer+= 2.0*hubble*(L3X-X*L3XX)*phidot;
 	
 	// NOTE: this cs2 needs \ddot{\phi}
 	//numer+=2.0*(L3X+X*L3XX)*phidotdot;
-	// Compute denominator of cs2
-	double denom=a2*(-2.0*L3p+VX+2.0*X*(VXX-L3Xp)+6.0*pow(X*L3X,2.0));
-	denom+= 6.0*hubble*(L3X+X*L3XX) * phidot;
-
+	
+	// Compute denominator of cs2:
+	// done in "commonterms" in "computelagrangian" call.
+	
 	// Return result
-	return numer / denom;
+	return cs2numer / cs2denom;
 }
 
 // The isghost function is given the state of the system and returns whether or not the theory has become ghostlike
@@ -282,13 +278,8 @@ bool KGB::isghost(const double data[]) {
 	// Compute quantities
 	int result = computelagrangian(data);
 
-	
-	// Compute quantity which must be positive for stability
-	double stab=a2*(-2.0*L3p+VX+2.0*X*(VXX-L3Xp)+6.0*pow(X*L3X,2.0));
-	stab+=6.0*hubble*(L3X+X*L3XX)*phidot;
-
 	// Check if positive, and return the result
-	if (stab < 0)
+	if (cs2denom < 0)
 		return true;
 	else
 		return false;
