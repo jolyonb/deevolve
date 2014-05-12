@@ -12,8 +12,18 @@
 using namespace std;
 using namespace boost::filesystem;
 
-int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &params, Output &output, IniReader &init) {
+int PostProcessingDist(vector<double>& hubble,
+		vector<double>& redshift,
+		vector<double>& DC,
+		vector<double>& DM,
+		vector<double>& DA,
+		vector<double>& DL,
+		vector<double>& mu,
+		double &rs,
+		IntParams &params, Output &output, IniReader &init) {
 	// Takes in a vector of hubble values and z values (in ascending z order)
+	// The rest of the vectors are assumed to be empty
+	// rs will be given the sound horizon scale at z_CMB
 	// Also takes in some basic parameters about the cosmology
 	// as well as the output class
 	// Computes distance measures
@@ -42,7 +52,6 @@ int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &
 	// Step 2: Integrate
 	// Now that we have our spline, it's time to integrate to obtain the appropriate quantities
 	// We compute the quantity D_C(z)/D_H = \int_0^z dz'/H(z')/(1 + z')
-	vector<double> DC;
 
 	// Set up the integration stuff
 	gsl_odeiv2_step *step;
@@ -64,7 +73,7 @@ int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &
 	double stepsize;
 
 	// Set the initial stepsize to be 10% of the first quantity
-	stepsize = redshift[1] / 10;
+	stepsize = redshift[1] / 10.0;
 
 	// Sets up the system to integrate, including the function that specifies the derivatives, NULL for the Jacobian, the number of elements
 	// being integrated, and the parameters to pass through to the function
@@ -102,39 +111,28 @@ int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &
 
 	}
 
-	// Check for problems
-	if (status != GSL_SUCCESS) {
-		std::stringstream erroroutput;
-		erroroutput << "Error in integrating distance measures: " << status << std::endl;
-		cout << erroroutput;
-		output.printlog(erroroutput.str());
-	}
-
 	// Release the integrator memory
 	gsl_odeiv2_evolve_free (evolve);
 	gsl_odeiv2_control_free (control);
 	gsl_odeiv2_step_free (step);
 
-	// Release the spline memory
-	gsl_spline_free (myspline.spline);
-	gsl_interp_accel_free (myspline.acc);
-
 	// Get out with an error response if necessary
-	if (status != GSL_SUCCESS)
+	if (status != GSL_SUCCESS) {
+		// Error message
+		std::stringstream erroroutput;
+		erroroutput << "Error in integrating distance measures: " << status << std::endl;
+		cout << erroroutput;
+		output.printlog(erroroutput.str());
+
+		// Release the spline memory
+		gsl_spline_free (myspline.spline);
+		gsl_interp_accel_free (myspline.acc);
 		return status;
+    }
 
 
 	// Step 3: Compute the other distance measures
 	// We have D_C(z)/D_H. The next step is to compute the rest of the measures (all / D_H, except for mu)
-	vector<double> DM;
-	vector<double> DA;
-	vector<double> DL;
-	vector<double> mu;
-	// Reserve space in the vectors (because we can)
-	DM.reserve(numrows);
-	DA.reserve(numrows);
-	DL.reserve(numrows);
-	mu.reserve(numrows);
 
 	// Extract OmegaK from the parameters
 	double OmegaK = params.getparams().OmegaK();
@@ -176,26 +174,75 @@ int PostProcessing(vector<double>& hubble, vector<double>& redshift, IntParams &
 	}
 
 	// At z = 0, all distance measures are zero, H = 1, and mu = -infinity.
-	// This is a problem for mu in particular.
+	// This is a problem for mu, which becomes infinite.
 	// For this reason, we remove the first entry of each distance measurement when reporting data.
 
 	// Step 4: Output all data. Convert all distance measurements to Mpc
 	double DH = params.getparams().DH();
 	for (int i = 1; i < numrows; i++) {
-		DC[i] *= DH;
-		DM[i] *= DH;
-		DL[i] *= DH;
-		DA[i] *= DH;
-		output.postprintstep(redshift[i], hubble[i], DC[i], DM[i], DA[i], DL[i], mu[i]);
+		output.postprintstep(redshift[i], hubble[i], DC[i] * DH, DM[i] * DH, DA[i] * DH, DL[i] * DH, mu[i]);
 	}
 
-	// Do we wish to compute chi^2 values?
-	int result = 0;
-	if (init.getiniBool("chisquared", false, "Function") == true)
-		result = calcchisquared(redshift, hubble, DC, DM, DA, DL, mu, params, output, init);
+
+	// Step 5: Calculate the sound horizon distance at recombination
+	// This one is a little more complicated.
+	// The expression we need is the following.
+	// r_s / D_H = \frac{1}{\sqrt{3}} \int^{\infty}_{z_{CMB}} \frac{dz'}{(1 + z') \tilde{\ch}(z')} \frac{1}{\sqrt{1 + 3 \Omega_B / 4 \Omega_\gamma (1 + z')}}
+	// Start by computing the quantity that depends on OmegaB and OmegaR, and storing it in the integration helper
+	double alpha = 3 * params.getparams().OmegaB() / 4 / params.getparams().OmegaGamma();
+	myspline.param = alpha;
+	// Note that this integral goes from zCMB to infinity. Our evolution doesn't go to infinite redshift however.
+	// We need to evaluate the integral over our span of redshift, as well as over the infinite portion.
+	// As we don't have information outside our span, we use a LambdaCDM prediction for that period, which should be accurate for most purposes.
+
+	// As we are only computing one value here, rather than a value at various redshifts, we can use a specialized integration routine.
+	// Set up the integration workspace
+	gsl_integration_workspace * workspace = gsl_integration_workspace_alloc (1000);
+
+	// First, we integrate over the data that we have
+	double intresult, error;
+	gsl_function intFunc;
+	intFunc.function = &rsintfunc;
+	intFunc.params = &myspline;
+
+	// Perform the integration
+	gsl_integration_qag (&intFunc, params.getparams().zCMB(), params.getparams().z0(), 1e-8, 0, 1000, 6, workspace, &intresult, &error);
+	// Store the result
+	rs = intresult;
+
+	// Next, we integrate over the infinite part of the integral. Note that we need to pass in all the parameters to calculate this integrand.
+	intFunc.function = &rsintfuncinf;
+	intFunc.params = &params;
+
+	// Perform the integration in two steps. Once, to redshift 1e5, using the more accurate integrator. Then, to infinite redshift.
+	// First, finite part
+	gsl_integration_qag (&intFunc, params.getparams().z0(), 1e5, 1e-8, 0, 1000, 6, workspace, &intresult, &error);
+	// Store the result
+	rs += intresult;
+	// Infinite part.
+	gsl_integration_qagiu (&intFunc, 1e5, 1e-8, 0, 1000, workspace, &intresult, &error);
+	// Store the result
+	rs += intresult;
+
+	// Include the multiplicative factor of 1/sqrt(3)
+	rs *= pow(3.0, -0.5);
+
+	// Release the memory from the integrator
+	gsl_integration_workspace_free (workspace);
+
+	// Release the spline memory
+	gsl_spline_free (myspline.spline);
+	gsl_interp_accel_free (myspline.acc);
+
+	// Report the result
+	{
+		std::stringstream reportoutput;
+		reportoutput << setprecision(8) << "Sound horizon scale at recombination: " << rs * DH << " Mpc" << std::endl;
+		output.printlog(reportoutput.str());
+	}
 
 	// Success!
-	return result;
+	return 0;
 }
 
 int PPintfunc(double z, const double data[], double derivs[], void *params) {
@@ -217,31 +264,52 @@ int PPintfunc(double z, const double data[], double derivs[], void *params) {
 
 }
 
-int calcchisquared(vector<double>& redshift,
-		           vector<double>& hubble,
-		           vector<double>& DC,
-		           vector<double>& DM,
-		           vector<double>& DA,
-		           vector<double>& DL,
-		           vector<double>& mu,
-		           IntParams &params, Output &output, IniReader &init) {
-	// This routine computes chi squared values from the various distance measurements
-	// It uses the calculated data that is now passed in
+double rsintfunc(double z, void *params) {
+	// This routine returns the derivative of the function we wish to integrate.
+	// In this case, we're integrating \int dz / (1 + z') H(z') sqrt{1 + alpha / (1 + z')}
+	// Thus, the derivative is 1 / (1 + z') H(z') sqrt{1 + alpha / (1 + z')}
 
-	// Step 1: We will need to know all these values at specific redshifts. Construct the required interpolaters.
+	// Extract parameters
+	splinetools myParams = *(splinetools *) params;
+
+	// Calculate H(z)
+	double H = gsl_spline_eval (myParams.spline, z, myParams.acc);
+
+	// Calculate the derivative
+	return 1 / (1.0 + z) / H / pow(1 + myParams.param / (1.0 + z), 0.5);
+
+}
+
+double rsintfuncinf(double z, void *params) {
+	// This routine returns the derivative of the function we wish to integrate.
+	// In this case, we're integrating \int dz / (1 + z') H(z') sqrt{1 + alpha / (1 + z')}
+	// Thus, the derivative is 1 / (1 + z') H(z') sqrt{1 + alpha / (1 + z')}
+	// However, here we do not have the benefit of a spline
+
+	// Extract parameters
+	IntParams myParams = *(IntParams *) params;
+
+	// Calculate H(z) based on LambdaCDM FRW evolution with radiation, matter and curvature
+	double a = 1.0 + z;
+	double H = pow(a * a * myParams.getparams().OmegaR() + a * myParams.getparams().OmegaM() + myParams.getparams().OmegaK(), 0.5);
+	double alpha = 3 * myParams.getparams().OmegaB() / 4 / myParams.getparams().OmegaR();
+
+	// Calculate the derivative
+	return 1 / a / H / pow(1 + alpha / a, 0.5);
+
+}
+
+int chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniReader &init) {
+	// This routine computes the chi^2 value for supernovae measurements
+
+	// Step 1: We will need to know mu at specific redshifts. Construct the required interpolater.
 
 	// Trick: Get pointers to the various arrays
-	// At z = 0, all distance measures are zero, H = 1, and mu = -infinity.
-	// This is a problem for mu in particular.
-	// For this reason, we remove the first entry of each distance measurement when constructing the interpolation.
-	double* pH = &hubble[1];
+	// At z = 0, mu = -infinity.
+	// For this reason, we remove the first entry when constructing the interpolation.
 	double* pz = &redshift[1];
-	double* pDC = &DC[1];
-	double* pDM = &DM[1];
-	double* pDA = &DA[1];
-	double* pDL = &DL[1];
 	double* pmu = &mu[1];
-	int numrows = hubble.size() - 1;
+	int numrows = redshift.size() - 1;
 
 	// Initialize the splines
 	// Distance modulus is used for the SN1a data
@@ -285,35 +353,132 @@ int calcchisquared(vector<double>& redshift,
 		}
 
 		// rows now contains a vector of doubles. Each row is the data from a supernovae.
-		// Each row contains four pieces of information: redshift, luminosity distance, error on luminosity distance, and a piece of
+		// Each row contains four pieces of information: redshift, distance modulus, error on distance modulus, and a piece of
 		// information that is not of use to us.
 
 		// Iterate through each row, and construct the chi^2
 		double chi2 = 0;
 		double val = 0;
 		for (int i = 0; i < rows.size(); i++) {
-			// Add (DL - DL(z))^2 / sigma^2 to the chi^2
+			// Add (mu - mu(z))^2 / sigma^2 to the chi^2
 			val = (rows[i][1] - gsl_spline_eval (muspline.spline, rows[i][0], muspline.acc)) / rows[i][2];
 			chi2 += val * val;
 		}
 
 		// Having gotten here, present the results
 		std::stringstream printing;
-		printing << "SN1a chi^2 computed from " << rows.size() << " data points." << endl;
-		printing << "chi^2 = " << chi2 << endl;
+		printing << "SN1a chi^2 = " << chi2 << " (computed from " << rows.size() << " data points)" << endl;
 		output.printlog(printing.str());
-		// The minimum chi^2 for LambdaCDM for this data set is 562.5
+		// The minimum chi^2 for LambdaCDM for this data set is ~562.5
 
 	}
 	else {
 		// Could not find data file
-		output.printlog("Error: cannot find Union2.1 SN1a data file.");
+		std::stringstream printing;
+		printing << "Error: cannot find Union2.1 SN1a data file." << endl;
+		cout << printing.str();
+		output.printlog(printing.str());
 	}
 
 	// Release the spline memory
 	gsl_spline_free (muspline.spline);
 	gsl_interp_accel_free (muspline.acc);
 
+	return 0;
+}
+
+int chi2CMB(vector<double>& redshift, vector<double>& DA, double &rs, Output &output, IntParams &params) {
+	// This routine computes the chi^2 value for CMB distance posteriors
+
+	// We use the WMAP distance posteriors on the acoustic scale and the shift parameter
+	// See http://lambda.gsfc.nasa.gov/product/map/dr3/pub_papers/fiveyear/cosmology/wmap_5yr_cosmo_reprint.pdf
+	// This needs the angular diameter distance at recombination, so we'll need a new interpolater
+	// Extract the appropriate data
+	double* pz = &redshift[0];
+	double* pDA = &DA[0];
+	int numrows = redshift.size();
+
+	// Construct the spline
+	splinetools DAspline;
+	DAspline.acc = gsl_interp_accel_alloc();
+	DAspline.spline = gsl_spline_alloc(gsl_interp_cspline, numrows);
+	gsl_spline_init (DAspline.spline, pz, pDA, numrows);
+
+	// Get the redshift of recombination
+	double zCMB = params.getparams().zCMB();
+
+	// Calculate l_A (note that as we're taking the ratio between the two distance scales, D_H doesn't appear here at all)
+	double la = (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc) * M_PI / rs;
+
+	// Calculate R (note that we don't need to divide by D_H here)
+	double R = pow(params.getparams().OmegaM(), 0.5) * (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc);
+
+	// Release the spline memory
+	gsl_spline_free (DAspline.spline);
+	gsl_interp_accel_free (DAspline.acc);
+
+	// Finally, compute the chi^2 values for WMAP and Planck
+	double chi2wmap = chi2WMAP(la, R, zCMB);
+	double chi2p = chi2Planck(la, R, zCMB);
+
+	// Output everything
+	{
+		std::stringstream printing;
+		printing << setprecision(8) << "Acoustic scale: l_A = " << la << endl;
+		printing << "Shift parameter: R = " << R << endl;
+		printing << "Redshift of CMB: z_CMB = " << zCMB << endl << endl;
+
+		printing << "WMAP Distance Posterior chi^2 = " << setprecision(8) << chi2wmap << endl;
+		printing << "Planck Distance Posterior chi^2 = " << setprecision(8) << chi2p << endl;
+		output.printlog(printing.str());
+	}
+
 	// Return success
 	return 0;
+
+}
+
+// Computes the chi^2 value for the CMB distance posteriors from WMAP 9 data
+// See Table 11 in arxiv.org/pdf/1212.5226v3.pdf and numbers below
+double chi2WMAP (double lA, double R, double z) {
+	// Construct deltas
+	double deltal = lA - 302.4;
+	double deltaR = R - 1.7246;
+	double deltaz = z - 1090.88;
+
+	double chi2 = 0;
+	// Add contributions from diagonals first
+	chi2 += deltal * deltal * 3.182;
+	chi2 += deltaR * deltaR * 11887.879;
+	chi2 += deltaz * deltaz * 4.556;
+	// Add contributions from off-diagonal terms next
+	chi2 += 2 * deltal * deltaR * 18.253;
+	chi2 += - 2 * deltal * deltaz * 1.429;
+	chi2 += - 2 * deltaR * deltaz * 193.808;
+
+	// Return the result
+	return chi2;
+}
+
+// Computes the chi^2 value for the CMB distance posteriors from Planck 1 data
+// See Tables 1 and 2 in http://arxiv.org/pdf/1309.0679v1.pdf
+// Note, we use the LambdaCDM values, as specified for the covariance matrix in the text
+double chi2Planck (double lA, double R, double z) {
+	// Construct deltas
+	double deltal = lA - 301.77;
+	double deltaR = R - 1.7477;
+	double deltaz = z - 1090.25;
+
+	double chi2 = 0;
+	// Add contributions from diagonals first
+	chi2 += deltal * deltal * 44.077;
+	chi2 += deltaR * deltaR * 48976.330;
+	chi2 += deltaz * deltaz * 12.592;
+	// Add contributions from off-diagonal terms next
+	chi2 += - 2 * deltal * deltaR * 383.927;
+	chi2 += - 2 * deltal * deltaz * 1.941;
+	chi2 += - 2 * deltaR * deltaz * 630.791;
+
+	// Return the result
+	return chi2;
 }
