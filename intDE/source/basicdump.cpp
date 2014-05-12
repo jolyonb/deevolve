@@ -3,18 +3,18 @@
 // Function to print data before the run starts
 void BasicDump::printinfo(const double data[], IntParams &params) {
 
-	// Require scientific notation, 15 digits
-	myLog->precision(15);
+	// Require scientific notation, 8 digits
+	myLog->precision(8);
 
 	// Print the header
 	*myLog << "Omega_m: \t" << params.getparams().OmegaM() << endl;
+	*myLog << "Omega_b: \t" << params.getparams().OmegaB() << endl;
 	*myLog << "Omega_k: \t" << params.getparams().OmegaK() << endl;
 	*myLog << "T_gamma: \t" << params.getparams().Tgamma() << " K" << endl;
 	*myLog << "Omega_r: \t" << params.getparams().OmegaR() << endl;
 	*myLog << "h: \t" << params.getparams().h() << endl;
 	*myLog << "z_init: \t" << params.getparams().z0() << endl;
 	*myLog << "rho_c: \t" << params.getparams().rhoc() << " (eV)^4" << endl;
-	*myLog << "z_CMB: \t" << params.getparams().zCMB() << endl;
 	*myLog << "DH: \t" << params.getparams().DH() << " Mpc" << endl << endl;
 
 }
@@ -117,7 +117,7 @@ bool BasicDump::filesready() {
 
 // Print a "We're done!" message
 void BasicDump::printfinish(const double time) {
-	*myLog << setprecision(4) << "Evolution complete in " << time << " milliseconds." << endl;
+	*myLog << setprecision(4) << "Evolution complete in " << time << " milliseconds." << setprecision(8) << endl;
 	cout << setprecision(4) << "Evolution complete in " << time << " milliseconds." << endl;
 }
 

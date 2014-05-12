@@ -52,12 +52,7 @@ int main(int argc, char* argv[]) {
 		myModel = new LambdaCDM();    // LambdaCDM is the default
 
 	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init and h (of H_0 = h * 100 km/s/Mpc)
-	Parameters *myParams = new Parameters(inifile.getiniDouble("Omegam", 0.3, "Cosmology"),
-										  inifile.getiniDouble("Omegab", 0.05, "Cosmology"),
-			                              inifile.getiniDouble("Tgamma", 2.72548, "Cosmology"),
-			                              inifile.getiniDouble("Omegak", 0.0, "Cosmology"),
-			                              inifile.getiniDouble("zInit", 1.0e4, "Cosmology"),
-			                              inifile.getiniDouble("Hubbleh", 0.7, "Cosmology"));
+	Parameters *myParams = new Parameters(inifile);
 
 	// Load the model and parameters into a class to pass into the integration routine
 	IntParams *myIntParams = new IntParams(*myParams, *myModel);
@@ -127,7 +122,7 @@ int main(int argc, char* argv[]) {
 	// Do the evolution!
 	result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput, *myChecker, hubble, redshift);
 
-	// Print a goodbye message, using time in milliseconds
+	// Print a done message, using time in milliseconds
 	myTimer.stop();
 	myOutput->printfinish(myTimer.elapsed().wall / 1e6);
 
@@ -138,11 +133,42 @@ int main(int argc, char* argv[]) {
 		myOutput->postprintheading();
 		// Start timing!
 		boost::timer::cpu_timer myPostTimer;
+
 		// We have H and z starting with high z going to z = 0. We want these reversed.
 		reverse(hubble.begin(),hubble.end());
 		reverse(redshift.begin(),redshift.end());
-		// Perform the postprocessing
-		result = PostProcessing(hubble, redshift, *myIntParams, *myOutput, inifile);
+
+		// Construct vectors for other quantities (except for mu, these will all be their values divided by DH = c/H_0)
+		vector<double> DC;
+		vector<double> DM;
+		vector<double> DA;
+		vector<double> DL;
+		vector<double> mu;
+		// Reserve space in the vectors (because we can)
+		int numrows = hubble.size();
+		DC.reserve(numrows);
+		DM.reserve(numrows);
+		DA.reserve(numrows);
+		DL.reserve(numrows);
+		mu.reserve(numrows);
+		// Other distances that are computed
+		double rs; // horizon scale at z_CMB
+
+		// Postprocess this data into distance measurements
+		result = PostProcessingDist(hubble, redshift, DC, DM, DA, DL, mu, rs, *myIntParams, *myOutput, inifile);
+
+		// Only continue if there was no error
+		if (result == 0) {
+			// Do we wish to compute chi^2 values?
+			if (inifile.getiniBool("chisquared", false, "Function") == true) {
+				// First, do chi^2 of WMAP and Planck distance posteriors
+				result = chi2CMB(redshift, DA, rs, *myOutput, *myIntParams);
+				// Next, do chi^2 of SN1a
+				result = chi2SN1a(redshift, mu, *myOutput, inifile);
+				// Finally, do chi^2 of BAO measurements
+			}
+		}
+
 		// Report done
 		myPostTimer.stop();
 		cout << "Postprocessing completed in " << setprecision(4) << myPostTimer.elapsed().wall / 1e6 << " milliseconds." << endl;

@@ -65,7 +65,7 @@ std::string LinearW::init(double data[], double time, Parameters &params, IniRea
 	// Go and extract Omega_Lambda from the ini file
 	OmegaLambda = init.getiniDouble("OmegaLambda", 0.7, section);
 	// Also extract w0 and wa from the ini file
-	w0 = init.getiniDouble("w0", -1.0, section);
+	w0 = init.getiniDouble("wnaught", -1.0, section);
 	wa = init.getiniDouble("wa", 0.0, section);
 
 	// Check to see if we want an exact value for OmegaLambda based on the other values in the cosmology
