@@ -359,7 +359,8 @@ int chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniRe
 		// Iterate through each row, and construct the chi^2
 		double chi2 = 0;
 		double val = 0;
-		for (int i = 0; i < rows.size(); i++) {
+		int numrows = rows.size();
+		for (int i = 0; numrows; i++) {
 			// Add (mu - mu(z))^2 / sigma^2 to the chi^2
 			val = (rows[i][1] - gsl_spline_eval (muspline.spline, rows[i][0], muspline.acc)) / rows[i][2];
 			chi2 += val * val;

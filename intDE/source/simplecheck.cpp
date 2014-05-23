@@ -10,6 +10,9 @@ void SimpleCheck::checkstate (const double data[], const double time, IntParams 
 	// Speed of sound is not superluminal
 	// Speed of sound is not imaginary
 	// Perturbations are not ghost-like
+	// Tensor speed is not superluminal
+	// Tensor speed is not imaginary
+	// Tensors are not ghost-like
 	// Energy density is not negative
 
 	// Check the error in the Friedmann equation
@@ -49,6 +52,29 @@ void SimpleCheck::checkstate (const double data[], const double time, IntParams 
 		}
 	}
 
+	// Check for speed of sound (tensors)
+	if (params.getmodel().implementsSOT()) {
+		double speed2 = params.getmodel().speedoftensor2(data);
+		if (speed2 > 1) {
+			std::stringstream message;
+			message << "Warning: Tensor speed is superluminal, time t = " << time;
+			output.printlog(message.str());
+		} else if (speed2 < 0) {
+			std::stringstream message;
+			message << "Warning: Tensor speed is imaginary, time t = " << time;
+			output.printlog(message.str());
+		}
+	}
+
+	// Check for ghosts (tensors)
+	if (params.getmodel().implementstensorghost()) {
+		if (params.getmodel().istensorghost(data)) {
+			std::stringstream message;
+			message << "Warning: Tensor perturbations are ghostlike, time t = " << time;
+			output.printlog(message.str());
+		}
+	}
+
 	// Check for negative energy density in DE
 	// Usually we'll crash from a div/0 error before getting here though!
 	if (status[13] < 0) {
@@ -64,7 +90,7 @@ void SimpleCheck::checkfinal (const double data[], const double time, IntParams 
 	// Equation of state of dark energy is very close to -1
 	// Hubble parameter is close to the measured value
 
-	// Check for EOS of DE (warn if the EOS is greater than 0.9)
+	// Check for EOS of DE (warn if the EOS is greater than -0.9)
 	if (status[15] > -0.9) {
 		std::stringstream message;
 		message << "Warning: final equation of state of dark energy is > -0.9";
