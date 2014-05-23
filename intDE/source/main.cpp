@@ -178,8 +178,6 @@ int main(int argc, char* argv[]) {
 		myOutput->printlog("Postprocessing did not occur because integration did not reach a=1.");
 	}
 
-	// Perform chi^2 computation; compute reference chi^2 for LambdaCDM model and construct delta chi^2 for this
-
 	// Clean up
 	delete myChecker;
 	delete myOutput;
