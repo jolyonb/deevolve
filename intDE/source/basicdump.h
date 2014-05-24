@@ -1,7 +1,7 @@
 /*
  * basicdump.h
  *
- * This is an output module. It essentially does the most basic output possible: it dumps everything to screen.
+ * This is an output module. It dumps basically everything to file, creating a log file that can be machine read as a parameter file.
  *
  */
 
@@ -28,6 +28,7 @@ class BasicDump : public Output {
 		void printfinish(const double time);
 		bool filesready();
 		void printlog(const std::string&);
+		void printvalue(const std::string&, const std::string&);
 
 		// Constructor
 		BasicDump(const std::string &filename = "run", const std::string &postname = "d");

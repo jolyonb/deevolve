@@ -117,13 +117,15 @@ std::string Quintessence::init(double data[], double time, Parameters &params, I
 	switch(modeltype){
 		case 1 :
 			// lambda phi^4
-			output << "Running Quintessence model with lambda phi^4 potential. Mass = "
-					<< mass << ", lambda = " << lambda << std::endl;
+			output << "Running Quintessence model with lambda phi^4 potential." << std::endl;
+			output << "Mass = " << mass << std::endl;
+			output << "lambda = " << lambda << std::endl;
 			break;
 		case 2 :
 			// Exponential
-			output << "Running Quintessence model with exponential potential. alpha = "
-					<< alpha << ", beta = " << beta << std::endl;
+			output << "Running Quintessence model with exponential potential." << std::endl;
+			output << "alpha = " << alpha << std::endl;
+			output << "beta = " << beta << std::endl;
 			break;
 		case 3 :
 			// User defined potential
@@ -132,9 +134,11 @@ std::string Quintessence::init(double data[], double time, Parameters &params, I
 		case 0 :
 		default : // Catch all
 			// mass term only
-			output << "Running Quintessence model with mass potential. Mass = "
-					<< mass << std::endl;
+			output << "Running Quintessence model with mass potential." << std::endl;
+			output << "Mass = " << mass << std::endl;
 	}
+	output << "phi0 = " << data[1] << std::endl;
+	output << "phidot0 = " << data[2] << std::endl;
 	return output.str();
 
 }

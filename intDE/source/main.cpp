@@ -100,7 +100,10 @@ int main(int argc, char* argv[]) {
 	// Get the output class to write out information on the run
 	myOutput->printinfo(data, *myIntParams);
 
-	// Allow the model to initialize itself
+	// Write the model name to the output log
+	myOutput->printvalue("Model", inifile.getiniString("model", "LambdaCDM", "Cosmology"));
+
+	// Allow the model to initialize itself. Any return string will be printed to the log.
 	std::string response = myModel->init(data, starttime, *myParams, inifile, result);
 	myOutput->printlog(response);
 	if (result != 0) {
@@ -156,6 +159,7 @@ int main(int argc, char* argv[]) {
 
 		// Postprocess this data into distance measurements
 		result = PostProcessingDist(hubble, redshift, DC, DM, DA, DL, mu, rs, *myIntParams, *myOutput, inifile);
+		myOutput->printlog("");
 
 		// Only continue if there was no error
 		if (result == 0) {
@@ -245,6 +249,7 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[],
 		if (result != GSL_SUCCESS) {
 			cerr << "Integration routine failed." << endl;
 			output.printlog("Integration routine failed.");
+			output.printvalue("FatalError", "1");
 			break;
 		}
 
@@ -296,6 +301,7 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[],
 		if (check.checknan(data, time, status)) {
 			// Something has become not-a-number
 			output.printlog("A quantity has become NaN. Terminating.");
+			output.printvalue("FatalError", "1");
 			cout << "A quantity has become NaN. Terminating." << endl;
 			break;
 		}
@@ -324,6 +330,7 @@ int BeginEvolution(Integrator &integrator, IntParams &params, double data[],
 	// Return -1 if we didn't get to a = 1
 	if (data[0] < 1.0) {
 		output.printlog("Did not reach a=1 during expected evolution time.");
+		output.printvalue("Incomplete", "1");
 		return -1;
 	}
 

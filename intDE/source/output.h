@@ -31,11 +31,14 @@ class Output {
 		// Function to print information after run is complete (time is given in milliseconds)
 		virtual void printfinish(const double time) {}
 
-		// Constructor with optional file name
-		Output(const std::string &filename = "run", const std::string &postname = "d") {}
-
 		// Routine to print a line to the log file
 		virtual void printlog(const std::string&) = 0;
+
+		// Routine to print a value and line to the log file
+		virtual void printvalue(const std::string&, const std::string&) = 0;
+
+		// Constructor with optional file name
+		Output(const std::string &filename = "run", const std::string &postname = "d") {}
 
 		// Virtual destructor
 		virtual ~Output() {}

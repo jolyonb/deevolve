@@ -95,7 +95,10 @@ std::string LinearW::init(double data[], double time, Parameters &params, IniRea
 
 	// Return a string to print to the log
 	std::stringstream output;
-	output << "Running LinearW model with Omega_Lambda = " << OmegaLambda << ", w0 = " << w0 << " and wa = " << wa << std::endl;
+	output << "Running LinearW model." << std::endl;
+	output << "OmegaLambda = " << OmegaLambda << std::endl;
+	output << "wnaught = " << w0 << std::endl;
+	output << "wa = " << wa << std::endl;
 	return output.str();
 
 }
