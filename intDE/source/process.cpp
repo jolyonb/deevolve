@@ -123,6 +123,7 @@ int PostProcessingDist(vector<double>& hubble,
 		erroroutput << "Error in integrating distance measures: " << status << std::endl;
 		cout << erroroutput;
 		output.printlog(erroroutput.str());
+		output.printvalue("DistanceError", "1");
 
 		// Release the spline memory
 		gsl_spline_free (myspline.spline);
@@ -237,8 +238,8 @@ int PostProcessingDist(vector<double>& hubble,
 	// Report the result
 	{
 		std::stringstream reportoutput;
-		reportoutput << setprecision(8) << "Sound horizon scale at recombination: " << rs * DH << " Mpc" << std::endl;
-		output.printlog(reportoutput.str());
+		reportoutput << setprecision(8) << rs * DH;
+		output.printvalue("SoundScale", reportoutput.str()); // Sound horizon scale in Mpc
 	}
 
 	// Success!
@@ -370,6 +371,9 @@ int chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniRe
 		std::stringstream printing;
 		printing << "SN1a chi^2 = " << chi2 << " (computed from " << rows.size() << " data points)" << endl;
 		output.printlog(printing.str());
+		printing.str("");
+		printing << chi2;
+		output.printvalue("SNChi", printing.str());
 		// The minimum chi^2 for LambdaCDM for this data set is ~562.5
 
 	}
@@ -425,13 +429,29 @@ int chi2CMB(vector<double>& redshift, vector<double>& DA, double &rs, Output &ou
 	// Output everything
 	{
 		std::stringstream printing;
-		printing << setprecision(8) << "Acoustic scale: l_A = " << la << endl;
-		printing << "Shift parameter: R = " << R << endl;
-		printing << "Redshift of CMB: z_CMB = " << zCMB << endl << endl;
+		printing << setprecision(8);
 
-		printing << "WMAP Distance Posterior chi^2 = " << setprecision(8) << chi2wmap << endl;
-		printing << "Planck Distance Posterior chi^2 = " << setprecision(8) << chi2p << endl;
-		output.printlog(printing.str());
+		printing << la;
+		output.printvalue("AcousticScale", printing.str());
+		printing.str("");
+
+		printing << R;
+		output.printvalue("ShiftR", printing.str());
+		printing.str("");
+
+		printing << zCMB;
+		output.printvalue("zCMB", printing.str());
+		printing.str("");
+
+		output.printlog("");
+
+		printing << chi2wmap;
+		output.printvalue("WMAPchi", printing.str());
+		printing.str("");
+
+		printing << chi2p;
+		output.printvalue("PLANCKchi", printing.str());
+		printing.str("");
 	}
 
 	// Return success

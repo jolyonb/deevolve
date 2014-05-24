@@ -7,15 +7,18 @@ void BasicDump::printinfo(const double data[], IntParams &params) {
 	myLog->precision(8);
 
 	// Print the header
-	*myLog << "Omega_m: \t" << params.getparams().OmegaM() << endl;
-	*myLog << "Omega_b: \t" << params.getparams().OmegaB() << endl;
-	*myLog << "Omega_k: \t" << params.getparams().OmegaK() << endl;
-	*myLog << "T_gamma: \t" << params.getparams().Tgamma() << " K" << endl;
-	*myLog << "Omega_r: \t" << params.getparams().OmegaR() << endl;
-	*myLog << "h: \t" << params.getparams().h() << endl;
-	*myLog << "z_init: \t" << params.getparams().z0() << endl;
-	*myLog << "rho_c: \t" << params.getparams().rhoc() << " (eV)^4" << endl;
-	*myLog << "DH: \t" << params.getparams().DH() << " Mpc" << endl << endl;
+	*myLog << "# Initializing program" << endl;
+	*myLog << "# Cosmological parameters" << endl;
+	*myLog << "OmegaM = " << params.getparams().OmegaM() << endl;
+	*myLog << "OmegaB = " << params.getparams().OmegaB() << endl;
+	*myLog << "OmegaK = " << params.getparams().OmegaK() << endl;
+	*myLog << "Tgamma = " << params.getparams().Tgamma() << endl; // K
+	*myLog << "OmegaR = " << params.getparams().OmegaR() << endl;
+	*myLog << "h = " << params.getparams().h() << endl;
+	*myLog << "zinit = " << params.getparams().z0() << endl;
+	*myLog << "rhoc = " << params.getparams().rhoc() << endl; // eV^4
+	*myLog << "DH = " << params.getparams().DH() << endl; // Mpc
+	*myLog << "Neff = " << params.getparams().Neff() << endl << endl;
 
 }
 
@@ -24,9 +27,10 @@ void BasicDump::printheading() {
 
 	// Dumping everything. Make nice headers.
 	//*myData << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
-	*myLog << "Columns in data file are as follows."
+	*myLog << "# Beginning run" << endl;
+	*myLog << "# Columns in data file are as follows:"
 		   << endl
-		   << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error"
+		   << "# time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error"
 		   << endl << endl;
 
 	// Set up the output form
@@ -50,9 +54,12 @@ void BasicDump::postprintheading() {
 
 	// Dumping everything. Make nice headers.
 	//*myData << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
-	*myLog << "Columns in post-processed data file are as follows. DC, DM, DA and DL are all in Mpc."
+	*myLog << "# Beginning postprocessing" << endl;
+	*myLog << "# Columns in post-processed data file are as follows:"
 		   << endl
-		   << "redshift, H, DC, DM, DA, DL, mu"
+		   << "# redshift, H, DC, DM, DA, DL, mu"
+		   << endl
+		   << "# DC, DM, DA and DL are all in Mpc."
 		   << endl << endl;
 
 	// Set up the output form
@@ -117,11 +124,20 @@ bool BasicDump::filesready() {
 
 // Print a "We're done!" message
 void BasicDump::printfinish(const double time) {
-	*myLog << setprecision(4) << "Evolution complete in " << time << " milliseconds." << setprecision(8) << endl;
+	*myLog << setprecision(4) << "# Evolution complete in " << time << " milliseconds." << setprecision(8) << endl << endl;
 	cout << setprecision(4) << "Evolution complete in " << time << " milliseconds." << endl;
 }
 
 // Print a line to the log file
 void BasicDump::printlog(const std::string &output) {
-	*myLog << output << endl;
+	if (output == "") {
+		*myLog << endl;
+	} else {
+		*myLog << "# " << output << endl;
+	}
+}
+
+// Print a value and data to the log file
+void BasicDump::printvalue(const std::string &value, const std::string &output) {
+	*myLog << value << " = " << output << endl;
 }

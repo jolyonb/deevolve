@@ -166,8 +166,13 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 
 	// Return a string to print to the log
 	std::stringstream output;
-	output << "Running Kessence model. lambda = " << lambda
-			<< ", n = " << n << ", alpha = " << alpha << ", beta = " << beta << std::endl;
+	output << "Running Kessence model." << std::endl;
+	output << "n = " << n << std::endl;
+	output << "lambda = " << lambda << std::endl;
+	output << "alpha = " << alpha << std::endl;
+	output << "beta = " << beta << std::endl;
+	output << "phi0 = " << data[1] << std::endl;
+	output << "phidot0 = " << data[2] << std::endl;
 	return output.str();
 
 }
