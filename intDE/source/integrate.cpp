@@ -11,7 +11,7 @@ Integrator::Integrator() {
 
 	// Initialize GSL
 	step = gsl_odeiv2_step_alloc(Type, numelements);
-	control = gsl_odeiv2_control_yp_new(0.0, 1e-12); // Only care about relative error (this is quite a stringent tolerance)
+	control = gsl_odeiv2_control_yp_new(0.0, 1e-8); // Only care about relative error (this is quite a stringent tolerance)
 	evolve = gsl_odeiv2_evolve_alloc(numelements);
 
 	// Set the initial stepsize to be quite small, in order to get good data on derivatives at the beginning
