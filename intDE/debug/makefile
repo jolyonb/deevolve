@@ -16,15 +16,13 @@ OBJECTS = main.o integrate.o quintessence.o basicdump.o lambdaCDM.o simplecheck.
 .PHONY: all
 all: main
 
-#%.o: ../source/%.cpp
-#	$(CC) -c $(INC) $< -o $@
-
 main: $(OBJECTS)
 	$(CC) $(OBJECTS) $(LIBS) -o ../$@
 
 clean:
 	-rm -rf $(OBJECTS) ../main .deps
 
+ifeq ($(USER),jolyon)
 # Fancy dependency stuff: stores the dependencies of each source file, so that if headers are updated, it knows which to recompile
 
 DEPDIR = .deps
@@ -34,3 +32,7 @@ DEPDIR = .deps
 	$(COMPILE.c) -o $@ -c $(INC) $<
 
 -include $(OBJECTS:%.o=$(DEPDIR)/%.P)
+else
+%.o: ../source/%.cpp
+	$(CC) -c $(INC) $< -o $@
+endif
