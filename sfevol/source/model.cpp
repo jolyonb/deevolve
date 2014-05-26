@@ -90,8 +90,8 @@ void GetLagDerivs(double *fld, double *lagparams, int modID, double *lagderivs){
         V = exp( - phi * potparam1 );
         dV = - potparam1 * V;
         
-        L = pow( X , potparam2 ) - V;
-        LX = potparam2 * pow( X , potparam2 - 1.0 );
+        L = X + pow( X , potparam2 ) - V;
+        LX = 1 + potparam2 * pow( X , potparam2 - 1.0 );
         LXX = potparam2 * ( potparam2 - 1.0 ) * pow( X , potparam2 - 2.0 );
         Lp = - dV;
         LpX = 0.0;
