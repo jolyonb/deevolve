@@ -12,6 +12,25 @@
 using namespace std;
 using namespace boost::filesystem;
 
+static inline double getzCMB(IntParams &params) {
+	// Calculate redshift of recombination (CMB formation)
+	// Computed using Eq E.1 from astro-ph/9510117v2 (note that Omega_0 = Omega_m) for percent level accuracy
+	double OmegaBh2 = params.getparams().OmegaB() * params.getparams().h() * params.getparams().h();
+	double g1 = 0.0783 * pow( OmegaBh2, -0.238) / (1.0 + 39.5 * pow(OmegaBh2, 0.763));
+	double g2 = 0.560 / (1.0 + 21.1 * pow(OmegaBh2, 1.81));
+	return 1048 * (1.0 + 0.00124 * pow(OmegaBh2, -0.738)) * (1.0 + g1 * pow(params.getparams().OmegaM() * params.getparams().h() * params.getparams().h(), g2));
+}
+
+static inline double getzdrag(IntParams &params) {
+	// Calculate redshift of drag epoch
+	// Computed using fitting forms from astro-ph/9709112 (note that Omega_0 = Omega_m) for percent level accuracy
+	double OmegaBh2 = params.getparams().OmegaB() * params.getparams().h() * params.getparams().h();
+	double OmegaMh2 = params.getparams().OmegaM() * params.getparams().h() * params.getparams().h();
+	double b1 = 0.313 * pow(OmegaMh2, -0.419) * (1 + 0.607 * pow(OmegaMh2, 0.674));
+	double b2 = 0.238 * pow(OmegaMh2, 0.223);
+	return 1291 * pow(OmegaMh2, 0.251) * (1 + b1 * pow(OmegaBh2, b2)) / (1 + 0.659 * pow(OmegaMh2, 0.828));
+}
+
 int PostProcessingDist(vector<double>& hubble,
 		vector<double>& redshift,
 		vector<double>& DC,
@@ -20,14 +39,18 @@ int PostProcessingDist(vector<double>& hubble,
 		vector<double>& DL,
 		vector<double>& mu,
 		double &rs,
+		double &rd,
 		IntParams &params, Output &output, IniReader &init) {
+	// Computes distance measures
+
 	// Takes in a vector of hubble values and z values (in ascending z order)
 	// The rest of the vectors are assumed to be empty
 	// rs will be given the sound horizon scale at z_CMB
+	// rd will be given the sound horizon scale at z_drag
+	// It's used to scale some results
 	// Also takes in some basic parameters about the cosmology
 	// as well as the output class
-	// Computes distance measures
-	// If requested in the ini file, also computes chi squared values
+	// Note that all parameters have now been scaled to the model, rather than to the input values
 
 	// Store the number of rows
 	int numrows = hubble.size();
@@ -52,6 +75,7 @@ int PostProcessingDist(vector<double>& hubble,
 	// Step 2: Integrate
 	// Now that we have our spline, it's time to integrate to obtain the appropriate quantities
 	// We compute the quantity D_C(z)/D_H = \int_0^z dz'/H(z')/(1 + z')
+	// Note that as H is scaled to be 1 at a = 1, we don't need to divide by anything to obtain the value on the LHS.
 
 	// Set up the integration stuff
 	gsl_odeiv2_step *step;
@@ -131,32 +155,39 @@ int PostProcessingDist(vector<double>& hubble,
 		return status;
     }
 
-
 	// Step 3: Compute the other distance measures
-	// We have D_C(z)/D_H. The next step is to compute the rest of the measures (all / D_H, except for mu)
+	// We have D_C(z) / DH. Let's get DH.
+	double DH = params.getparams().DH();
 
 	// Extract OmegaK from the parameters
 	double OmegaK = params.getparams().OmegaK();
 
 	// The computation of DM depends on whether OmegaK is 0, positive or negative
+	// We also multiply DC by DH to give it units of Mpc
 	if (OmegaK > 0) {
 		// k < 0
 		double rootk = pow(OmegaK, 0.5);
 		for (int i = 0; i < numrows; i++) {
-			DM.push_back(sinh(rootk * DC[i]) / rootk);
+			DM.push_back(DH * sinh(rootk * DC[i]) / rootk);
+			DC[i] *= DH;
 		}
 	}
 	else if (OmegaK < 0) {
 		// k > 0
 		double rootk = pow((-OmegaK), 0.5);
 		for (int i = 0; i < numrows; i++) {
-			DM.push_back(sin(rootk * DC[i]) / rootk);
+			DM.push_back(DH * sin(rootk * DC[i]) / rootk);
+			DC[i] *= DH;
 		}
 	}
 	else {
 		// OmegaK == 0
+		for (int i = 0; i < numrows; i++) {
+			DC[i] *= DH;
+		}
 		DM = DC;
 	}
+
 
 	// Next, compute DA and DL
 	DA = DM;
@@ -167,25 +198,22 @@ int PostProcessingDist(vector<double>& hubble,
 		DL[i] *= currentz;
 	}
 
-	// Finally, compute mu. This requires us to know h
-	// In particular, we need to know c (in km/s) divided by h divided by 100 (ie, we want c/H0 in Mpc)
-	double conh = 2997.92458 / params.getparams().h();
+	// Finally, compute mu. As DL is already in Mpc, this is straightforward.
 	for (int i = 0; i < numrows; i++) {
-		mu.push_back(25 + 5 * log10 (DL[i] * conh));
+		mu.push_back(25 + 5 * log10 (DL[i]));
 	}
 
 	// At z = 0, all distance measures are zero, H = 1, and mu = -infinity.
 	// This is a problem for mu, which becomes infinite.
 	// For this reason, we remove the first entry of each distance measurement when reporting data.
 
-	// Step 4: Output all data. Convert all distance measurements to Mpc
-	double DH = params.getparams().DH();
+	// Step 4: Output all data.
 	for (int i = 1; i < numrows; i++) {
-		output.postprintstep(redshift[i], hubble[i], DC[i] * DH, DM[i] * DH, DA[i] * DH, DL[i] * DH, mu[i]);
+		output.postprintstep(redshift[i], hubble[i], DC[i], DM[i], DA[i], DL[i], mu[i]);
 	}
 
 
-	// Step 5: Calculate the sound horizon distance at recombination
+	// Step 5: Calculate the sound horizon distance at recombination and drag epochs
 	// This one is a little more complicated.
 	// The expression we need is the following.
 	// r_s / D_H = \frac{1}{\sqrt{3}} \int^{\infty}_{z_{CMB}} \frac{dz'}{(1 + z') \tilde{\ch}(z')} \frac{1}{\sqrt{1 + 3 \Omega_B / 4 \Omega_\gamma (1 + z')}}
@@ -206,10 +234,15 @@ int PostProcessingDist(vector<double>& hubble,
 	intFunc.function = &rsintfunc;
 	intFunc.params = &myspline;
 
-	// Perform the integration
-	gsl_integration_qag (&intFunc, params.getparams().zCMB(), params.getparams().z0(), 1e-8, 0, 1000, 6, workspace, &intresult, &error);
+	// Perform the integration: z_CMB
+	gsl_integration_qag (&intFunc, getzCMB(params), params.getparams().z0(), 1e-8, 0, 1000, 6, workspace, &intresult, &error);
 	// Store the result
 	rs = intresult;
+
+	// Perform the integration: z_drag
+	gsl_integration_qag (&intFunc, getzdrag(params), params.getparams().z0(), 1e-8, 0, 1000, 6, workspace, &intresult, &error);
+	// Store the result
+	rd = intresult;
 
 	// Next, we integrate over the infinite part of the integral. Note that we need to pass in all the parameters to calculate this integrand.
 	intFunc.function = &rsintfuncinf;
@@ -220,13 +253,20 @@ int PostProcessingDist(vector<double>& hubble,
 	gsl_integration_qag (&intFunc, params.getparams().z0(), 1e5, 1e-8, 0, 1000, 6, workspace, &intresult, &error);
 	// Store the result
 	rs += intresult;
+	rd += intresult;
+
 	// Infinite part.
 	gsl_integration_qagiu (&intFunc, 1e5, 1e-8, 0, 1000, workspace, &intresult, &error);
 	// Store the result
 	rs += intresult;
+	rd += intresult;
 
 	// Include the multiplicative factor of 1/sqrt(3)
 	rs *= pow(3.0, -0.5);
+	rd *= pow(3.0, -0.5);
+	// and the factor of DH
+	rs *= DH;
+	rd *= DH;
 
 	// Release the memory from the integrator
 	gsl_integration_workspace_free (workspace);
@@ -238,8 +278,13 @@ int PostProcessingDist(vector<double>& hubble,
 	// Report the result
 	{
 		std::stringstream reportoutput;
-		reportoutput << setprecision(8) << rs * DH;
-		output.printvalue("SoundScale", reportoutput.str()); // Sound horizon scale in Mpc
+		reportoutput << setprecision(8) << rs;
+		output.printvalue("SoundScaleCMB", reportoutput.str()); // Sound horizon scale in Mpc at z_CMB
+		reportoutput.str("");
+
+		reportoutput << setprecision(8) << rd;
+		output.printvalue("SoundScaleDrag", reportoutput.str()); // Sound horizon scale in Mpc at z_drag
+
 	}
 
 	// Success!
@@ -361,7 +406,7 @@ int chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniRe
 		double chi2 = 0;
 		double val = 0;
 		int numrows = rows.size();
-		for (int i = 0; numrows; i++) {
+		for (int i = 0; i < numrows; i++) {
 			// Add (mu - mu(z))^2 / sigma^2 to the chi^2
 			val = (rows[i][1] - gsl_spline_eval (muspline.spline, rows[i][0], muspline.acc)) / rows[i][2];
 			chi2 += val * val;
@@ -369,20 +414,17 @@ int chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniRe
 
 		// Having gotten here, present the results
 		std::stringstream printing;
-		printing << "SN1a chi^2 = " << chi2 << " (computed from " << rows.size() << " data points)" << endl;
+		printing << "SN1a chi^2 computed from " << rows.size() << " data points";
 		output.printlog(printing.str());
 		printing.str("");
 		printing << chi2;
-		output.printvalue("SNChi", printing.str());
+		output.printvalue("SNchi", printing.str());
 		// The minimum chi^2 for LambdaCDM for this data set is ~562.5
 
 	}
 	else {
 		// Could not find data file
-		std::stringstream printing;
-		printing << "Error: cannot find Union2.1 SN1a data file." << endl;
-		cout << printing.str();
-		output.printlog(printing.str());
+		output.printlog("Error: cannot find Union2.1 SN1a data file.");
 	}
 
 	// Release the spline memory
@@ -392,7 +434,7 @@ int chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniRe
 	return 0;
 }
 
-int chi2CMB(vector<double>& redshift, vector<double>& DA, double &rs, Output &output, IntParams &params) {
+int chi2CMB(vector<double>& redshift, vector<double>& DA, double rs, Output &output, IntParams &params) {
 	// This routine computes the chi^2 value for CMB distance posteriors
 
 	// We use the WMAP distance posteriors on the acoustic scale and the shift parameter
@@ -409,14 +451,15 @@ int chi2CMB(vector<double>& redshift, vector<double>& DA, double &rs, Output &ou
 	DAspline.spline = gsl_spline_alloc(gsl_interp_cspline, numrows);
 	gsl_spline_init (DAspline.spline, pz, pDA, numrows);
 
-	// Get the redshift of recombination
-	double zCMB = params.getparams().zCMB();
+	// Get the redshift of the CMB and drag epochs
+	double zCMB = getzCMB(params);
+	double zdrag = getzdrag(params);
 
-	// Calculate l_A (note that as we're taking the ratio between the two distance scales, D_H doesn't appear here at all)
+	// Calculate l_A
 	double la = (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc) * M_PI / rs;
 
-	// Calculate R (note that we don't need to divide by D_H here)
-	double R = pow(params.getparams().OmegaM(), 0.5) * (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc);
+	// Calculate R
+	double R = pow(params.getparams().OmegaM(), 0.5) * (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc) / params.getparams().DH();
 
 	// Release the spline memory
 	gsl_spline_free (DAspline.spline);
@@ -441,6 +484,10 @@ int chi2CMB(vector<double>& redshift, vector<double>& DA, double &rs, Output &ou
 
 		printing << zCMB;
 		output.printvalue("zCMB", printing.str());
+		printing.str("");
+
+		printing << zdrag;
+		output.printvalue("zdrag", printing.str());
 		printing.str("");
 
 		output.printlog("");
@@ -502,4 +549,190 @@ double chi2Planck (double lA, double R, double z) {
 
 	// Return the result
 	return chi2;
+}
+
+// Routine to compute a chi^2 value for hubble, based on some desired value
+int chi2hubble(IntParams &params, double desired, double sigma, Output &output){
+
+	if (sigma == 0.0) return -1;
+
+	std::stringstream printing;
+	printing << setprecision(8);
+
+	double x = (params.getparams().h() - desired) / sigma;
+	printing << x * x;
+	output.printvalue("Hubblechi", printing.str());
+
+	return 0;
+
+}
+
+// Helper routine that computes DV given various values
+static inline double getDV(double z, double DA, double DH) {
+	// DV = ((1 + z)^2 DA^2 z DH)^(1/3)
+	return pow((1 + z) * (1 + z) * DA * DA * z * DH, 1.0 / 3.0);
+}
+
+// Helper routine that calculates the chi^2 for SDSS
+static inline double getSDSSresult(double d2, double d35) {
+	double x1 = d2 - 0.1905;
+	double x2 = d35 - 0.1097;
+
+	return x1 * x1 * 30124 + x2 * x2 * 86977 - 2 * x1 * x2 * 17227;
+}
+
+// Helper routine that calculates the chi^2 for WiggleZ
+static inline double getWiggleZresult(double A44, double A6, double A73) {
+	double x1 = A44 - 0.474;
+	double x2 = A6 - 0.442;
+	double x3 = A73 - 0.424;
+
+	double chi2 = 0;
+	// Add contributions from diagonals first
+	chi2 += x1 * x1 * 1040.3;
+	chi2 += x2 * x2 * 3720.3;
+	chi2 += x3 * x3 * 2914.9;
+	// Add contributions from off-diagonal terms next
+	chi2 += - 2 * x1 * x2 * 807.5;
+	chi2 += 2 * x1 * x3 * 336.8;
+	chi2 += - 2 * x2 * x3 * 1551.9;
+
+	return chi2;
+}
+
+// Routine to compute chi^2 values for BAO observations
+int chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vector<double>& DA, IntParams &params, Output &output) {
+	// Takes in the sound horizon at the drag epoch (in Mpc), the redshift, hubble and angular diameter distance measures,
+	// the evolution parameters (we're going to need Omega_M), and the output class for logging purposes.
+
+	// Each separate experiment seems to have their own way of presenting results, so we'll have to do them one by one, carefully
+	// We'll need to interpolate to obtain H(z) and DA(z) values
+	double Hval;
+	double DAval;
+	double Hval2;
+	double DAval2;
+	double Hval3;
+	double DAval3;
+	// Note that what we actually want is DH(z) = c / H(z)
+	// What we have is the dimensionless H. So, to obtain DH(z), we want DH_0 / \tilde{H}
+	double DH = params.getparams().DH();
+	double DV;
+	double DV2;
+	double DV3;
+	double result;
+
+	// Printing utility
+	std::stringstream printing;
+	printing << setprecision(8);
+	output.printlog("BAO chi^2 values:");
+
+	// Extract the appropriate data
+	double* pz = &redshift[0];
+	double* pDA = &DA[0];
+	double* pH = &hubble[0];
+	int numrows = redshift.size();
+
+	// Construct the splines
+	// DA
+	splinetools DAspline;
+	DAspline.acc = gsl_interp_accel_alloc();
+	DAspline.spline = gsl_spline_alloc(gsl_interp_cspline, numrows);
+	gsl_spline_init (DAspline.spline, pz, pDA, numrows);
+	// H
+	splinetools Hspline;
+	Hspline.acc = gsl_interp_accel_alloc();
+	Hspline.spline = gsl_spline_alloc(gsl_interp_cspline, numrows);
+	gsl_spline_init (Hspline.spline, pz, pH, numrows);
+
+
+	// 6dFGS: z = 0.106
+	DAval = gsl_spline_eval (DAspline.spline, 0.106, DAspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.106, Hspline.acc);
+	DV = getDV(0.106, DAval, DH / Hval);
+	result = (rdrag / DV - 0.336) / 0.015;
+
+	printing << result * result;
+	output.printvalue("6dFGSchi", printing.str());
+	printing.str("");
+
+
+	// SDSS: z = 0.2, z = 0.35
+	DAval = gsl_spline_eval (DAspline.spline, 0.2, DAspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.2, Hspline.acc);
+	DAval2 = gsl_spline_eval (DAspline.spline, 0.35, DAspline.acc);
+	Hval2 = gsl_spline_eval (Hspline.spline, 0.35, Hspline.acc);
+	DV = getDV(0.2, DAval, DH / Hval);
+	DV2 = getDV(0.35, DAval2, DH / Hval2);
+
+	result = getSDSSresult(rdrag / DV, rdrag / DV2);
+	printing << result;
+	output.printvalue("SDSSchi", printing.str());
+	printing.str("");
+
+
+	// SDSSR: z = 0.35
+	// Use DV2 from above
+	result = (DV2 / rdrag - 8.88) / 0.17;
+
+	printing << result * result;
+	output.printvalue("SDSSRchi", printing.str());
+	printing.str("");
+
+
+	// WiggleZ: z = 0.44, z = 0.6, z = 0.73
+	DAval = gsl_spline_eval (DAspline.spline, 0.44, DAspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.44, Hspline.acc);
+	DV = getDV(0.44, DAval, DH / Hval);
+
+	DAval2 = gsl_spline_eval (DAspline.spline, 0.6, DAspline.acc);
+	Hval2 = gsl_spline_eval (Hspline.spline, 0.6, Hspline.acc);
+	DV2 = getDV(0.6, DAval2, DH / Hval2);
+
+	DAval3 = gsl_spline_eval (DAspline.spline, 0.73, DAspline.acc);
+	Hval3 = gsl_spline_eval (Hspline.spline, 0.73, Hspline.acc);
+	DV3 = getDV(0.73, DAval3, DH / Hval3);
+
+	// Convert these DV values into A values
+	double fact = sqrt(params.getparams().OmegaM()) / DH;
+	double A1 = DV * fact / 0.44;
+	double A2 = DV2 * fact / 0.6;
+	double A3 = DV3 * fact / 0.73;
+
+	result = getWiggleZresult(A1, A2, A3);
+	printing << result;
+	output.printvalue("WiggleZchi", printing.str());
+	printing.str("");
+
+
+	// BOSS DR9: z = 0.57
+	DAval = gsl_spline_eval (DAspline.spline, 0.57, DAspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.57, Hspline.acc);
+	DV = getDV(0.57, DAval, DH / Hval);
+	result = (DV / rdrag - 13.67) / 0.22;
+
+	printing << result * result;
+	output.printvalue("BOSSDR9chi", printing.str());
+	printing.str("");
+
+
+	// BOSS DR11: z = 2.34
+	DAval = gsl_spline_eval (DAspline.spline, 2.34, DAspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 2.34, Hspline.acc);
+	double alphapar = DH / Hval / rdrag / 8.708;
+	double alphaperp = DAval / rdrag / 11.59;
+	result = pow(alphapar, 0.7) * pow(alphaperp, 0.3);
+	double chi = (result - 1.025) / 0.021;
+
+	printing << chi * chi;
+	output.printvalue("BOSSDR11chi", printing.str());
+
+
+	// Release the spline memory
+	gsl_spline_free (DAspline.spline);
+	gsl_interp_accel_free (DAspline.acc);
+	gsl_spline_free (Hspline.spline);
+	gsl_interp_accel_free (Hspline.acc);
+
+	// Return success
+	return 0;
 }

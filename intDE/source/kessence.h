@@ -23,6 +23,7 @@ class Kessence : public Model {
 		bool implementsSOS() {return true;}
 		bool isghost(const double data[]);
 		bool implementsghost() {return true;}
+
 		// The speed of tensor perturbations are unchanged from GR however
 		double speedoftensor2(const double data[]) {return 1.0;} // The speed of tensor perturbations in k-essence is always 1.
 		bool implementsSOT() {return true;}
