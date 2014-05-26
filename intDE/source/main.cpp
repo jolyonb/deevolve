@@ -125,6 +125,35 @@ int main(int argc, char* argv[]) {
 	// Do the evolution!
 	result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput, *myChecker, hubble, redshift);
 
+
+	// Now that the evolution is complete, we wish to compute what the actual values for the various
+	// density fractions were, in order to get the postprocessing right.
+	// Note that there will be some errors using these fractions if k appears explicitly in the equations of motion
+
+	// Start by fixing up the Hubble vector
+	int numrows = hubble.size();
+	vector<double> hubblemodel;
+	hubblemodel.reserve(numrows);
+
+	// We have H and z starting with high z going to z = 0. We want these reversed.
+	reverse(hubble.begin(),hubble.end());
+	reverse(redshift.begin(),redshift.end());
+
+	// Extract the value of hubble at z = 0.
+	double H1 = hubble[0];
+
+	// We can now go through and populate the hubble vector
+	for (int i = 0; i < numrows; i++) {
+		hubblemodel.push_back(hubble[i] / H1);
+	}
+	// The hubblemodel vector now contains Hubble, in units of H_0_actual
+
+	// Lodge a call to the parameters class asking it to update it's information
+	myIntParams->getparams().updateinfo(H1);
+
+	// Now go and report to the logs what's happened
+	reportmodelvals(*myIntParams, *myOutput);
+
 	// Print a done message, using time in milliseconds
 	myTimer.stop();
 	myOutput->printfinish(myTimer.elapsed().wall / 1e6);
@@ -137,10 +166,6 @@ int main(int argc, char* argv[]) {
 		// Start timing!
 		boost::timer::cpu_timer myPostTimer;
 
-		// We have H and z starting with high z going to z = 0. We want these reversed.
-		reverse(hubble.begin(),hubble.end());
-		reverse(redshift.begin(),redshift.end());
-
 		// Construct vectors for other quantities (except for mu, these will all be their values divided by DH = c/H_0)
 		vector<double> DC;
 		vector<double> DM;
@@ -148,17 +173,17 @@ int main(int argc, char* argv[]) {
 		vector<double> DL;
 		vector<double> mu;
 		// Reserve space in the vectors (because we can)
-		int numrows = hubble.size();
 		DC.reserve(numrows);
 		DM.reserve(numrows);
 		DA.reserve(numrows);
 		DL.reserve(numrows);
 		mu.reserve(numrows);
 		// Other distances that are computed
-		double rs; // horizon scale at z_CMB
+		double rs; // sound horizon at z_CMB
+		double rd; // sound horizon at z_drag
 
 		// Postprocess this data into distance measurements
-		result = PostProcessingDist(hubble, redshift, DC, DM, DA, DL, mu, rs, *myIntParams, *myOutput, inifile);
+		result = PostProcessingDist(hubblemodel, redshift, DC, DM, DA, DL, mu, rs, rd, *myIntParams, *myOutput, inifile);
 		myOutput->printlog("");
 
 		// Only continue if there was no error
@@ -169,7 +194,10 @@ int main(int argc, char* argv[]) {
 				result = chi2CMB(redshift, DA, rs, *myOutput, *myIntParams);
 				// Next, do chi^2 of SN1a
 				result = chi2SN1a(redshift, mu, *myOutput, inifile);
+				// Do chi^2 for hubble value
+				result = chi2hubble(*myIntParams, inifile.getiniDouble("desiredh", 0.7, "Cosmology"), inifile.getiniDouble("sigmah", 0.03, "Cosmology"), *myOutput);
 				// Finally, do chi^2 of BAO measurements
+				result = chi2BAO(rd, redshift, hubblemodel, DA, *myIntParams, *myOutput);
 			}
 		}
 
@@ -192,6 +220,36 @@ int main(int argc, char* argv[]) {
 
 	// Exit gracefully
 	return 0;
+}
+
+// Reports the actual density fractions etc after the evolution is complete
+void reportmodelvals(IntParams &params, Output &output) {
+	std::stringstream printing;
+	printing << setprecision(8);
+
+	output.printlog("Values from evolution of model are as follows:");
+
+	printing << params.getparams().h();
+	output.printvalue("modelh", printing.str());
+	printing.str("");
+
+	printing << params.getparams().OmegaR();
+	output.printvalue("modelOmegaR", printing.str());
+	printing.str("");
+
+	printing << params.getparams().OmegaM();
+	output.printvalue("modelOmegaM", printing.str());
+	printing.str("");
+
+	printing << params.getparams().OmegaB();
+	output.printvalue("modelOmegaB", printing.str());
+	printing.str("");
+
+	printing << params.getparams().OmegaK();
+	output.printvalue("modelOmegaK", printing.str());
+
+	output.printlog("");
+
 }
 
 int BeginEvolution(Integrator &integrator, IntParams &params, double data[],

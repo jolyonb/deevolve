@@ -14,10 +14,10 @@ void BasicDump::printinfo(const double data[], IntParams &params) {
 	*myLog << "OmegaK = " << params.getparams().OmegaK() << endl;
 	*myLog << "Tgamma = " << params.getparams().Tgamma() << endl; // K
 	*myLog << "OmegaR = " << params.getparams().OmegaR() << endl;
-	*myLog << "h = " << params.getparams().h() << endl;
+	*myLog << "h = " << params.getparams().h() << endl; // Units in which Hubble is reported (\tilde{H} = H / h * 100 km/s/Mpc)
 	*myLog << "zinit = " << params.getparams().z0() << endl;
 	*myLog << "rhoc = " << params.getparams().rhoc() << endl; // eV^4
-	*myLog << "DH = " << params.getparams().DH() << endl; // Mpc
+	*myLog << "H0 = " << params.getparams().H0() << endl; // eV
 	*myLog << "Neff = " << params.getparams().Neff() << endl << endl;
 
 }

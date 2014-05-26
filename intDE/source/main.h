@@ -46,4 +46,7 @@ int intfunc(double, const double*, double*, void*);
 // Function that finds an appropriate filename (padding is number of characters in the number)
 std::string getfilename(const std::string &, const std::string &, const std::string &, const int padding = 4);
 
+// Function to print out some info after the evolution is complete
+void reportmodelvals(IntParams&, Output&);
+
 #endif /* MAIN_H_ */
