@@ -18,6 +18,7 @@ class LinearW : public Model {
 		// Here are the functions that are overridden by the LinearW class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
+        bool isvalidconfig(const double data[]) {return true;}
 
 	private:
 		// Here are some overridden internal functions. They're pretty self-explanatory.

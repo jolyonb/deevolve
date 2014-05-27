@@ -153,6 +153,10 @@ int main(int argc, char* argv[]) {
         // Did not get t a = 1 error
         cout << "Did not evolve to a = 1 within appropriate conformal time; terminating." << endl;
     }
+    else if (result == 4) {
+        // Invalid state error
+        cout << "Invalid state reached; terminating." << endl;
+    }
 
 
     //**********//

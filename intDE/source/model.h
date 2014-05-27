@@ -65,6 +65,11 @@ class Model {
 		// The implementstensorghost function returns whether or not a class actually implements the istensorghost function
 		virtual bool implementstensorghost() {return false;}
 
+		// This function is used to report whether or not the system is in a valid configuration
+		// The most notable example of a system in an invalid configuration is F(R) where F'' = 0
+		// If this function returns false, the evolution is aborted
+		virtual bool isvalidconfig(const double data[]) = 0;
+
 		// Virtual destructor
 		virtual ~Model() {return;}
 
