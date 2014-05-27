@@ -1,19 +1,19 @@
 /*
  * main.cpp
  *
- * This is the program entry point for the program. The purpose of this software is to evolve scalar field models through
- * cosmological time.
+ * This is the program entry point for the program.
  *
- * For library dependencies, see main.h
+ * It acts as a wrapper around the evolution routines. All that this wrapper does is to set
+ * up the appropriate input and output objects.
  *
- * For info on rameters, see params.ini
+ * The purpose of this software is to evolve scalar field models through cosmological time.
  *
- * Most initialization (and memory release) is handled in the "main" routine.
- * All integration is handled in the "BeginEvolution" routine.
- * intfunc is a helper function for integration.
- * getfilename is a helper function for creating log files.
+ * This software requires the GSL libraries.
  *
- * Jolyon Bloomfield, March 2014
+ * This software requires the C++ BOOST libraries (see www.boost.org)
+ * These are most easily installed using a package manager (libboost-all-dev on ubuntu)
+ *
+ * Jolyon K. Bloomfield and Jonathan A. Pearson, March 2014
  *
  */
 
@@ -21,62 +21,42 @@
 #include "main.h"
 
 // Our program entry point
+// This entry point is just a wrapper around the evolution routines.
+// It sets up the input parameters as well as the output file, and otherwise just calls the routines.
 int main(int argc, char* argv[]) {
 
-	// Just a number for return values
-	int result;
+    int result; // Just a number for return values
 
-	// Read the params.ini file
-	// If there is a command line argument, assume that it is a different file than params.ini
+    //******************//
+    // Input parameters //
+    //******************//
+
+	// Read the input parameters file, named "params.ini" by default.
+	// If there is a command line argument, assume that it is the filename for the parameters file.
 	IniReader inifile;
 	if (argc > 1)
 		inifile.read(argv[1]);
 	else
 		inifile.read("params.ini");
 
-	// Set up the integrator
-	Integrator *myIntegrator = new Integrator;
+    // Set up the cosmological parameters
+    Parameters *myParams = new Parameters(inifile);
 
-	// Set up the model class
-	Model *myModel;
-	std::string parsestring = inifile.getiniString("model", "LambdaCDM", "Cosmology");
-	if (parsestring == "Quintessence")
-		myModel = new Quintessence();
-	else if (parsestring == "LinearW")
-		myModel = new LinearW();
-	else if (parsestring == "Kessence")
-		myModel = new Kessence();
-	else if (parsestring == "KGB")
-		myModel = new KGB();
-	else
-		myModel = new LambdaCDM();    // LambdaCDM is the default
 
-	// Set up the parameters - OmegaM, Tgamma, OmegaK, z_init and h (of H_0 = h * 100 km/s/Mpc)
-	Parameters *myParams = new Parameters(inifile);
-
-	// Load the model and parameters into a class to pass into the integration routine
-	IntParams *myIntParams = new IntParams(*myParams, *myModel);
-
-	// Set up more initial conditions
-	double starttime = inifile.getiniDouble("starttime", 0.0, "Function");
-	double endtime = starttime + inifile.getiniDouble("maxtime", 10.0, "Function");
-	double phi0 = inifile.getiniDouble("phi0", 0.01, "Cosmology");
-	double phidot0 = inifile.getiniDouble("phidot0", 0.0, "Cosmology");;
-
-	// The data array stores a, \phi, \dot{phi} and H through the evolution
-	// H is calculated in the initialization of the model
-	// The initial value of a is extracted from the starting redshift
-	double data[4] = { 1.0 / (1.0 + myParams->z0()), phi0, phidot0, 0.0 };
+    //**************//
+    // Output class //
+    //**************//
 
 	// Set up the filenames to output
 	string outputdir = inifile.getiniString("logdir", "logs", "Function");
 	string basename = inifile.getiniString("runname", "run", "Function");
 	string postname = inifile.getiniString("postname", "d", "Function");
+
 	// Go and find our appropriate file name (using 4 digit numbers as the default)
 	string outputname = getfilename(outputdir, basename, postname, inifile.getiniInt("numberpad", 4, "Function"));
 
 	// Set up the output class
-	parsestring = inifile.getiniString("outputclass", "BasicDump", "Function");
+	std::string parsestring = inifile.getiniString("outputclass", "BasicDump", "Function");
 	Output *myOutput;
 	if (parsestring == "BasicDump")
 		myOutput = new BasicDump(outputname, postname);
@@ -85,331 +65,96 @@ int main(int argc, char* argv[]) {
 
 	// Check that output is a go
 	if (!myOutput->filesready()) {
-		cerr << "Unable to open files for output." << endl;
+        // End gracefully if not
+		cout << "Unable to open files for output." << endl;
+	    delete myOutput;
+	    delete myParams;
 		return -1;
 	}
 
-	// Set up the consistency check class
-	parsestring = inifile.getiniString("consistencyclass", "None", "Function");
-	Consistency *myChecker;
-	if (parsestring == "SimpleCheck")
-		myChecker = new SimpleCheck();
-	else
-		myChecker = new Consistency();  // Default option, which has no checking
+    // Initialize vectors to store Hubble and redshift data
+    vector<double> hubble;
+    vector<double> redshift;
 
-	// Get the output class to write out information on the run
-	myOutput->printinfo(data, *myIntParams);
 
-	// Write the model name to the output log
-	myOutput->printvalue("Model", inifile.getiniString("model", "LambdaCDM", "Cosmology"));
+    //*******************//
+    // Do the evolution! //
+    //*******************//
 
-	// Allow the model to initialize itself. Any return string will be printed to the log.
-	std::string response = myModel->init(data, starttime, *myParams, inifile, result);
-	myOutput->printlog(response);
-	if (result != 0) {
-		cerr << "Unable to initialize model." << endl << response << endl;
-		return -1;
-	}
-
-	// Print some stuff to the screen
-	cout << "Beginning evolution of " << myModel->classname() << " model" << endl;
-	cout << "Outputting to " << outputname << endl;
-
-	// Initialize vectors to store Hubble and redshift data
-	vector<double> hubble;
-	vector<double> redshift;
+    // Print some stuff to the screen
+    cout << "Beginning evolution." << endl;
+    cout << "Outputting to " << outputname << endl;
 
 	// Start timing!
 	boost::timer::cpu_timer myTimer;
 
-	// Do the evolution!
-	result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, *myOutput, *myChecker, hubble, redshift);
+	// Do the evolution
+	double H0;
+	result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble, H0);
 
+    // Stop timing
+    myTimer.stop();
 
-	// Now that the evolution is complete, we wish to compute what the actual values for the various
-	// density fractions were, in order to get the postprocessing right.
-	// Note that there will be some errors using these fractions if k appears explicitly in the equations of motion
+    // Interpret the result of the evolution
+	if (result == 0) {
+	    // Success!
 
-	// Start by fixing up the Hubble vector
-	int numrows = hubble.size();
-	vector<double> hubblemodel;
-	hubblemodel.reserve(numrows);
+	    // Print a nice message
+	    myOutput->printfinish(myTimer.elapsed().wall / 1e6);
+	    cout << setprecision(4) << "Evolution complete in " << myTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
 
-	// We have H and z starting with high z going to z = 0. We want these reversed.
-	reverse(hubble.begin(),hubble.end());
-	reverse(redshift.begin(),redshift.end());
+	    // Perform postprocessing if specified in the options
+	    if (inifile.getiniBool("postprocess", false, "Function") == true) {
+	        // Start timing!
+            boost::timer::cpu_timer myPostTimer;
+            cout << "Beginning postprocessing." << endl;
 
-	// Extract the value of hubble at z = 0.
-	double H1 = hubble[0];
+            // Lodge a call to the parameters class asking it to update it's information
+            myParams->updateinfo(H0);
 
-	// We can now go through and populate the hubble vector
-	for (int i = 0; i < numrows; i++) {
-		hubblemodel.push_back(hubble[i] / H1);
+            // Perform postprocessing
+            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
+
+            // Stop timing
+            myPostTimer.stop();
+
+            // Check for result of postprocessing
+            if (result == 1) {
+                cout << "Error integrating distance measures; terminating." << endl;
+            }
+            else if (result == 0) {
+                // Report done
+                cout << "Postprocessing completed in " << setprecision(4) << myPostTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
+            }
+	    }
 	}
-	// The hubblemodel vector now contains Hubble, in units of H_0_actual
+	else if (result == -1) {
+	    // Initialization error
+	    cout << "Error initializing model; terminating." << endl;
+    }
+	else if (result == 1) {
+        // Integration error
+        cout << "Integration error; terminating." << endl;
+    }
+	else if (result == 2) {
+        // NAN error
+        cout << "NAN error; terminating." << endl;
+    }
+	else if (result == 3) {
+        // Did not get t a = 1 error
+        cout << "Did not evolve to a = 1 within appropriate conformal time; terminating." << endl;
+    }
 
-	// Lodge a call to the parameters class asking it to update it's information
-	myIntParams->getparams().updateinfo(H1);
 
-	// Now go and report to the logs what's happened
-	reportmodelvals(*myIntParams, *myOutput);
+    //**********//
+    // Clean up //
+    //**********//
 
-	// Print a done message, using time in milliseconds
-	myTimer.stop();
-	myOutput->printfinish(myTimer.elapsed().wall / 1e6);
-
-	// Perform postprocessing, depending on the result of the integration (and of course, the options)
-	if (result == 0 && inifile.getiniBool("postprocess", false, "Function") == true) {
-		cout << "Beginning postprocessing." << endl;
-		// Get the output class to print any headings
-		myOutput->postprintheading();
-		// Start timing!
-		boost::timer::cpu_timer myPostTimer;
-
-		// Construct vectors for other quantities (except for mu, these will all be their values divided by DH = c/H_0)
-		vector<double> DC;
-		vector<double> DM;
-		vector<double> DA;
-		vector<double> DL;
-		vector<double> mu;
-		// Reserve space in the vectors (because we can)
-		DC.reserve(numrows);
-		DM.reserve(numrows);
-		DA.reserve(numrows);
-		DL.reserve(numrows);
-		mu.reserve(numrows);
-		// Other distances that are computed
-		double rs; // sound horizon at z_CMB
-		double rd; // sound horizon at z_drag
-
-		// Postprocess this data into distance measurements
-		result = PostProcessingDist(hubblemodel, redshift, DC, DM, DA, DL, mu, rs, rd, *myIntParams, *myOutput, inifile);
-		myOutput->printlog("");
-
-		// Only continue if there was no error
-		if (result == 0) {
-			// Do we wish to compute chi^2 values?
-			if (inifile.getiniBool("chisquared", false, "Function") == true) {
-				// First, do chi^2 of WMAP and Planck distance posteriors
-				result = chi2CMB(redshift, DA, rs, *myOutput, *myIntParams);
-				// Next, do chi^2 of SN1a
-				result = chi2SN1a(redshift, mu, *myOutput, inifile);
-				// Do chi^2 for hubble value
-				result = chi2hubble(*myIntParams, inifile.getiniDouble("desiredh", 0.7, "Cosmology"), inifile.getiniDouble("sigmah", 0.03, "Cosmology"), *myOutput);
-				// Finally, do chi^2 of BAO measurements
-				result = chi2BAO(rd, redshift, hubblemodel, DA, *myIntParams, *myOutput);
-			}
-		}
-
-		// Report done
-		myPostTimer.stop();
-		cout << "Postprocessing completed in " << setprecision(4) << myPostTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
-	}
-	else if (result == -1 && inifile.getiniBool("postprocess", false, "Function") == true) {
-		// Postprocessing cannot occur because integration did not finish
-		myOutput->printlog("Postprocessing did not occur because integration did not reach a=1.");
-	}
-
-	// Clean up
-	delete myChecker;
-	delete myOutput;
-	delete myIntParams;
-	delete myParams;
-	delete myModel;
-	delete myIntegrator;
+    delete myOutput;
+    delete myParams;
 
 	// Exit gracefully
 	return 0;
-}
-
-// Reports the actual density fractions etc after the evolution is complete
-void reportmodelvals(IntParams &params, Output &output) {
-	std::stringstream printing;
-	printing << setprecision(8);
-
-	output.printlog("Values from evolution of model are as follows:");
-
-	printing << params.getparams().h();
-	output.printvalue("modelh", printing.str());
-	printing.str("");
-
-	printing << params.getparams().OmegaR();
-	output.printvalue("modelOmegaR", printing.str());
-	printing.str("");
-
-	printing << params.getparams().OmegaM();
-	output.printvalue("modelOmegaM", printing.str());
-	printing.str("");
-
-	printing << params.getparams().OmegaB();
-	output.printvalue("modelOmegaB", printing.str());
-	printing.str("");
-
-	printing << params.getparams().OmegaK();
-	output.printvalue("modelOmegaK", printing.str());
-
-	output.printlog("");
-
-}
-
-int BeginEvolution(Integrator &integrator, IntParams &params, double data[],
-		const double starttime, const double endtime, Output &output, Consistency &check,
-		vector<double>& hubble, vector<double>& redshift) {
-	// This routine takes in a number of parameters, and performs the cosmological background evolution
-	// integrator is the class that handles integration steps
-	// params is the class that stores the cosmological parameters
-	// data is an array of three elements that stores a, \phi, and \dot{\phi}. This is the data that gets evolved
-	// starttime stores the starting value of conformal time for the evolution
-	// endtime stores a value of conformal time after which we should stop the evolution
-	// output is a class that writes things to the screen and output files
-	// check is a class that checks the data for internal self-consistency (e.g., ghosts, superluminality, etc)
-	// hubble and redshift are vectors used for storing this data for the purpose of postprocessing
-
-	// We need our own time variable to step forwards
-	double time = starttime;
-	// The result from the integrator. It returns GSL_SUCCESS (0) when everything works
-	int result;
-	// An array to hold the status information
-	double status[17];
-	// And a double to hold the stepsize
-	double stepsize;
-
-	// Variables for storing the current state, in case we overshoot.
-	double oldtime;
-	double olddata[4];
-
-	// Write the column headers
-	output.printheading();
-	// Extract the initial state from the model
-	params.getmodel().getstate(data, time, status, params.getparams());
-	// Add the starting hubble and redshift values to the vectors
-	hubble.push_back(status[3]);
-	redshift.push_back(status[2]);
-	// Write the initial conditions
-	output.printstep(data, time, params, status);
-	// Do a consistency check on the initial conditions
-	check.checkstate(data, time, params, output, status);
-
-	// This is the loop that takes successive integration steps. Halt if we go past the maximum evolution length.
-	while (time < endtime) {
-
-		// Store old data before taking a new step
-		oldtime = time;
-		olddata[0] = data[0];
-		olddata[1] = data[1];
-		olddata[2] = data[2];
-		olddata[3] = data[3];
-
-		// Take a step
-		result = integrator.dointstep(intfunc, params, data, time, endtime);
-
-		// If the step failed, break out of the loop
-		if (result != GSL_SUCCESS) {
-			cerr << "Integration routine failed." << endl;
-			output.printlog("Integration routine failed.");
-			output.printvalue("FatalError", "1");
-			break;
-		}
-
-		// If we've shot past a = 1, then interpolate back to a = 1.
-		if (data[0] > 1.0) {
-			// Calculate the time at which a = 0
-			double olda = olddata[0];
-			double newa = data[0];
-			double time1 = oldtime + (time - oldtime) * (1 - olda) / (newa - olda);
-
-			// Calculate the value of H
-			double oldH = olddata[3];
-			double newH = data[3];
-			double H1 = oldH + (time1 - oldtime) / (time - oldtime) * (newH - oldH);
-
-			// Calculate the value of phi
-			double oldphi = olddata[1];
-			double newphi = data[1];
-			double phi1 = oldphi + (time1 - oldtime) / (time - oldtime) * (newphi - oldphi);
-
-			// Calculate the value of phidot
-			double oldphid = olddata[2];
-			double newphid = data[2];
-			double phid1 = oldphid + (time1 - oldtime) / (time - oldtime) * (newphid - oldphid);
-
-			// Put it all back into the data
-			time = time1;
-			data[0] = 1.0;
-			data[1] = phi1;
-			data[2] = phid1;
-			data[3] = H1;
-
-		}
-
-		// Extract the state from the model
-		params.getmodel().getstate(data, time, status, params.getparams());
-
-		// Add the hubble and redshift values to the vectors
-		hubble.push_back(status[3]);
-		redshift.push_back(status[2]);
-
-		// Get the output class to write out the state of the system
-		output.printstep(data, time, params, status);
-
-		// Take a look at the consistency of the data
-		check.checkstate(data, time, params, output, status);
-
-		// Make sure that nothing has become NaN
-		if (check.checknan(data, time, status)) {
-			// Something has become not-a-number
-			output.printlog("A quantity has become NaN. Terminating.");
-			output.printvalue("FatalError", "1");
-			cout << "A quantity has become NaN. Terminating." << endl;
-			break;
-		}
-
-		// Get out if we're done
-		if (data[0] >= 1.0)
-			break;
-
-		// If we're nearing a = 1, be careful
-		// Estimated step size in a is H * stepsize
-		stepsize = integrator.getstepsize();
-		if (data[0] + 2.0 * data[3] * stepsize > 1.0) {
-			// Reduce the stepsize
-			// Calculate the exact amount that the stepsize will need to be in order to get to a = 1
-			// in the linear approximation
-			double temp = (1.0 - data[0]) / 2.0 / data[3];
-			integrator.setstepsize(0.9 * temp);
-			// Eventually we'll run into the minimum step size and we'll cross the finishline
-			// Also note that Hdot is usually negative, so it will typically take a little bit more than temp
-			// to cross the finish line.
-			// This tends to take about 20 steps to hit a = 1, which should be good enough to have
-			// derivatives near a = 1 under control.
-		}
-	}
-
-	// Return -1 if we didn't get to a = 1
-	if (data[0] < 1.0) {
-		output.printlog("Did not reach a=1 during expected evolution time.");
-		output.printvalue("Incomplete", "1");
-		return -1;
-	}
-
-	// Take a look at the consistency of the final state
-	check.checkfinal(data, time, params, output, status);
-
-	// Return success!
-	return 0;
-}
-
-int intfunc(double t, const double data[], double derivs[], void *params) {
-	// This routine calculates the derivatives for a, phi, \dot{\phi} and \dot{H}
-	// It is called by the integration routine.
-
-	// Extract parameters
-	IntParams myParams = *(IntParams *) params;
-
-	// Call the derivatives routine in the model to calculate the derivatives appropriately
-	// Note that they don't depend on time
-	return myParams.getmodel().derivatives(data, derivs, myParams.getparams());
-
 }
 
 string getfilename(const std::string &dir, const std::string &filebase, const std::string &postbase, const int padding) {

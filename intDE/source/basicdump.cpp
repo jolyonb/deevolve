@@ -1,24 +1,23 @@
 #include "basicdump.h"
 
 // Function to print data before the run starts
-void BasicDump::printinfo(const double data[], IntParams &params) {
+void BasicDump::printinfo(const double data[], Parameters &params) {
 
 	// Require scientific notation, 8 digits
 	myLog->precision(8);
 
 	// Print the header
-	*myLog << "# Initializing program" << endl;
 	*myLog << "# Cosmological parameters" << endl;
-	*myLog << "OmegaM = " << params.getparams().OmegaM() << endl;
-	*myLog << "OmegaB = " << params.getparams().OmegaB() << endl;
-	*myLog << "OmegaK = " << params.getparams().OmegaK() << endl;
-	*myLog << "Tgamma = " << params.getparams().Tgamma() << endl; // K
-	*myLog << "OmegaR = " << params.getparams().OmegaR() << endl;
-	*myLog << "h = " << params.getparams().h() << endl; // Units in which Hubble is reported (\tilde{H} = H / h * 100 km/s/Mpc)
-	*myLog << "zinit = " << params.getparams().z0() << endl;
-	*myLog << "rhoc = " << params.getparams().rhoc() << endl; // eV^4
-	*myLog << "H0 = " << params.getparams().H0() << endl; // eV
-	*myLog << "Neff = " << params.getparams().Neff() << endl << endl;
+	*myLog << "OmegaM = " << params.OmegaM() << endl;
+	*myLog << "OmegaB = " << params.OmegaB() << endl;
+	*myLog << "OmegaK = " << params.OmegaK() << endl;
+	*myLog << "Tgamma = " << params.Tgamma() << endl; // K
+	*myLog << "OmegaR = " << params.OmegaR() << endl;
+	*myLog << "h = " << params.h() << endl; // Units in which Hubble is reported (\tilde{H} = H / h * 100 km/s/Mpc)
+	*myLog << "zinit = " << params.z0() << endl;
+	*myLog << "rhoc = " << params.rhoc() << endl; // eV^4
+	*myLog << "H0 = " << params.H0() << endl; // eV
+	*myLog << "Neff = " << params.Neff() << endl << endl;
 
 }
 
@@ -40,7 +39,7 @@ void BasicDump::printheading() {
 }
 
 // Function to print information after each timestep
-void BasicDump::printstep(const double data[], const double time, const IntParams &params, const double status[]) {
+void BasicDump::printstep(const double data[], const double time, const double status[]) {
 
 	// We are just dumping everything here, except for consistency flags
 	for (int i = 0; i < 16; i++)
@@ -57,7 +56,7 @@ void BasicDump::postprintheading() {
 	*myLog << "# Beginning postprocessing" << endl;
 	*myLog << "# Columns in post-processed data file are as follows:"
 		   << endl
-		   << "# redshift, H, DC, DM, DA, DL, mu"
+		   << "# redshift, DC, DM, DA, DL, mu"
 		   << endl
 		   << "# DC, DM, DA and DL are all in Mpc."
 		   << endl << endl;
@@ -73,7 +72,6 @@ void BasicDump::postprintstep(const double z, const double H, const double DC, c
 
 	// We are just dumping everything here
 	*myPostData << z << ", "
-			    << H << ", "
 			    << DC << ", "
 			    << DM << ", "
 			    << DA << ", "
@@ -125,7 +123,6 @@ bool BasicDump::filesready() {
 // Print a "We're done!" message
 void BasicDump::printfinish(const double time) {
 	*myLog << setprecision(4) << "# Evolution complete in " << time << " milliseconds." << setprecision(8) << endl << endl;
-	cout << setprecision(4) << "Evolution complete in " << time << " milliseconds." << endl;
 }
 
 // Print a line to the log file
@@ -137,7 +134,17 @@ void BasicDump::printlog(const std::string &output) {
 	}
 }
 
-// Print a value and data to the log file
-void BasicDump::printvalue(const std::string &value, const std::string &output) {
-	*myLog << value << " = " << output << endl;
+// Print a key and string to the log file
+void BasicDump::printvalue(const std::string &key, const std::string &value) {
+	*myLog << key << " = " << value << endl;
+}
+
+// Print a key and double to the log file
+void BasicDump::printvalue(const std::string &key, const double value) {
+    *myLog << key << " = " << setprecision(8) << value << endl;
+}
+
+// Print a key and integer to the log file
+void BasicDump::printvalue(const std::string &key, const int value) {
+    *myLog << key << " = " << value << endl;
 }

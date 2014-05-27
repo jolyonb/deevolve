@@ -118,17 +118,17 @@ void SimpleCheck::checkfinal (const double data[], const double time, IntParams 
 	if (finaleos || finalhubble || friederror || phantom || superluminal || laplacian || ghost || tsuperluminal || tlaplacian || tghost || negenergy) {
 		output.printlog("");
 		output.printlog("Warning summary:");
-		if (finaleos) output.printvalue("FinalEOS", "1");
-		if (finalhubble) output.printvalue("FinalHubble", "1");
-		if (friederror) output.printvalue("FriedError", "1");
-		if (phantom) output.printvalue("Phantom", "1");
-		if (superluminal) output.printvalue("Superluminal", "1");
-		if (laplacian) output.printvalue("Laplacian", "1");
-		if (ghost) output.printvalue("Ghost", "1");
-		if (tsuperluminal) output.printvalue("TensorSuperluminal", "1");
-		if (tlaplacian) output.printvalue("TensorLaplacian", "1");
-		if (tghost) output.printvalue("TensorGhost", "1");
-		if (negenergy) output.printvalue("NegativeEnergy", "1");
+		if (finaleos) output.printvalue("FinalEOS", 1);
+		if (finalhubble) output.printvalue("FinalHubble", 1);
+		if (friederror) output.printvalue("FriedError", 1);
+		if (phantom) output.printvalue("Phantom", 1);
+		if (superluminal) output.printvalue("Superluminal", 1);
+		if (laplacian) output.printvalue("Laplacian", 1);
+		if (ghost) output.printvalue("Ghost", 1);
+		if (tsuperluminal) output.printvalue("TensorSuperluminal", 1);
+		if (tlaplacian) output.printvalue("TensorLaplacian", 1);
+		if (tghost) output.printvalue("TensorGhost", 1);
+		if (negenergy) output.printvalue("NegativeEnergy", 1);
 		output.printlog("");
 	}
 
