@@ -33,6 +33,17 @@ class IniReader {
 
 		}
 
+        void setdata(ptree data) {
+            // Instead of reading an ini file, this allows the data to be submitted directly,
+            // allowing a programmatic setting of the ini data
+            inifile = data;
+        }
+
+        ptree getdata() {
+            // Returns the full property tree, typically so that setinidata can be used
+            return inifile;
+        }
+
 		// The following routines are all identical, but written for different data types.
 		// They all return information from the ini file, of the specified data type.
 		// The parameters are identical for each:
