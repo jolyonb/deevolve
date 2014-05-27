@@ -138,7 +138,7 @@ std::string Quintessence::init(double data[], double time, Parameters &params, I
 			output << "Mass = " << mass << std::endl;
 	}
 	output << "phi0 = " << data[1] << std::endl;
-	output << "phidot0 = " << data[2] << std::endl;
+	output << "phidot0 = " << data[2];
 	return output.str();
 
 }

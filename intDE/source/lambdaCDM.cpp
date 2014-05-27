@@ -96,7 +96,7 @@ std::string LambdaCDM::init(double data[], double time, Parameters &params, IniR
 	// Return a string to print to the log
 	std::stringstream output;
 	output << "Running LambdaCDM model." << std::endl;
-	output << "OmegaLambda = " << OmegaLambda << std::endl;
+	output << "OmegaLambda = " << OmegaLambda;
 	return output.str();
 
 }

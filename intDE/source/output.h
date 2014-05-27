@@ -9,18 +9,18 @@
 #define OUTPUT_H_
 
 #include <iostream>
-#include "intparams.h"
+#include "params.h"
 
 class Output {
 	public:
 		// Function to print data before the run starts
-		virtual void printinfo(const double data[], IntParams&) = 0;
+		virtual void printinfo(const double data[], Parameters&) = 0;
 
 		// Function to print a header before output starts (e.g., column headings)
 		virtual void printheading() {}
 
 		// Function to print information after each timestep
-		virtual void printstep(const double data[], const double time, const IntParams&, const double status[]) = 0;
+		virtual void printstep(const double data[], const double time, const double status[]) = 0;
 
 		// Function to print header for postprocessing data before output starts (e.g., column headings)
 		virtual void postprintheading() {}
@@ -34,8 +34,12 @@ class Output {
 		// Routine to print a line to the log file
 		virtual void printlog(const std::string&) = 0;
 
-		// Routine to print a value and line to the log file
+		// Routine to print a key and value to the log file
+		// Three overloaded versions
 		virtual void printvalue(const std::string&, const std::string&) = 0;
+		virtual void printvalue(const std::string&, const double) = 0;
+        virtual void printvalue(const std::string&, const int) = 0;
+
 
 		// Constructor with optional file name
 		Output(const std::string &filename = "run", const std::string &postname = "d") {}

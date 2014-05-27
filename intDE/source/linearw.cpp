@@ -98,7 +98,7 @@ std::string LinearW::init(double data[], double time, Parameters &params, IniRea
 	output << "Running LinearW model." << std::endl;
 	output << "OmegaLambda = " << OmegaLambda << std::endl;
 	output << "wnaught = " << w0 << std::endl;
-	output << "wa = " << wa << std::endl;
+	output << "wa = " << wa;
 	return output.str();
 
 }

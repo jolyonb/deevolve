@@ -237,7 +237,7 @@ std::string KGB::init(double data[], double time, Parameters &params, IniReader 
 	// Return a string to print to the log
 	std::stringstream output;
 	output << "Running KGB model. lambda = " << lambda
-			<< ", n = " << n << ", alpha = " << alpha << ", beta = " << beta << std::endl;
+			<< ", n = " << n << ", alpha = " << alpha << ", beta = " << beta;
 	return output.str();
 
 }

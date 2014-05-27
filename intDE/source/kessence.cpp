@@ -172,7 +172,7 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 	output << "alpha = " << alpha << std::endl;
 	output << "beta = " << beta << std::endl;
 	output << "phi0 = " << data[1] << std::endl;
-	output << "phidot0 = " << data[2] << std::endl;
+	output << "phidot0 = " << data[2];
 	return output.str();
 
 }
