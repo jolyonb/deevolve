@@ -39,6 +39,15 @@ int main(int argc, char* argv[]) {
 	else
 		inifile.read("params.ini");
 
+	// Now that we have the ini file read in, we can change values programmatically as follows.
+	// Start by grabbing the tree data
+	// boost::property_tree::ptree initdata = inifile.getdata();
+	// Change a value
+	// initdata.put("Cosmology.Hubbleh", "0.7");
+	// And send it back!
+	// inifile.setdata(initdata);
+	// How easy is that?
+
     // Set up the cosmological parameters
     Parameters *myParams = new Parameters(inifile);
 
@@ -143,6 +152,10 @@ int main(int argc, char* argv[]) {
 	else if (result == 3) {
         // Did not get t a = 1 error
         cout << "Did not evolve to a = 1 within appropriate conformal time; terminating." << endl;
+    }
+    else if (result == 4) {
+        // Invalid state error
+        cout << "Invalid state reached; terminating." << endl;
     }
 
 

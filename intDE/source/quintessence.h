@@ -20,6 +20,7 @@ class Quintessence : public Model {
 		// Here are the functions that are overridden by the quintessence class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
+        bool isvalidconfig(const double data[]) {return true;}
 
 		// The speed of sound/tensors and ghost checks are all trivial for quintessence
 		double speedofsound2(const double data[]) {return 1.0;} // The speed of sound in quintessence is always 1.

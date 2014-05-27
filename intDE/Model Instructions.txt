@@ -22,6 +22,7 @@ class <Name> : public Model {
 		// Here are the functions that are overridden by the quintessence class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		void getstate(const double data[], const double time, double info[], Parameters &params);
+        bool isvalidconfig(const double data[]) {return true;}
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
 		double speedofsound2(const double data[]);
 		bool implementsSOS() {return true;}
@@ -57,6 +58,8 @@ Choose what functionality you want your class to have! The above template includ
 - istensorghost and implementstensorghost are used to check if tensor perturbations are ghostlike. Remove both if you aren't using them.
 
 - getstate has a default implementation that will probably work for your model. It will only fail if you have different definitions of matter/radiation energy density than what we've implemented, usually because you're doing some funny counting with a nonminimally coupled model. You can probably just use ours, but do check.
+
+- isvalidconfig is required of all classes. It is used to validate the field configuration of a model. The most obvious example is in F(R) models where F'' = 0, which is an invalid configuration.
 
 
 Step #4.

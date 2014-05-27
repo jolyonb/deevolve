@@ -17,6 +17,7 @@ class Kessence : public Model {
 		// Here are the functions that are overridden by the quintessence class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
+        bool isvalidconfig(const double data[]) {return true;}
 
 		// The speed of sound and scalar ghost conditions need to be calculated for k-essence
 		double speedofsound2(const double data[]);

@@ -33,6 +33,7 @@ static int intfunc(double, const double*, double*, void*);
 // 1: Integration error
 // 2: NAN error
 // 3: Did not get to a = 1 in allotted time
+// 4: Model reports invalid state
 int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<double>& redshift, vector<double>& hubble, double &H0) {
 
     int result = 0; // For information coming back from functions
@@ -96,7 +97,22 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
     // Allow the model to initialize itself. Any return string will be printed to the log (can be used as an error message)
     std::string response = myModel->init(data, starttime, params, inifile, result);
     output.printlog(response);
-    if (result != 0) return -1;
+    if (result != 0){
+        delete myChecker;
+        delete myIntParams;
+        delete myModel;
+        delete myIntegrator;
+        return -1;
+    }
+
+    // Check that the model has an internally consistent state with the initial data (it should have aborted already if so, but be safe)
+    if (myModel->isvalidconfig(data) == false) {
+        delete myChecker;
+        delete myIntParams;
+        delete myModel;
+        delete myIntegrator;
+        return 4;
+    }
 
     // Write the model name to the output log
     output.printvalue("Model", myModel->classname());
@@ -271,6 +287,15 @@ static int BeginEvolution(Integrator &integrator, IntParams &params, double data
 
     // This is the loop that takes successive integration steps. Halt if we go past the maximum evolution time.
     while (time < endtime) {
+
+        // Before taking a timestep, check for a valid model configuration
+        if (params.getmodel().isvalidconfig(data) == false) {
+            // The model reports it is internally inconsistent. Abort.
+            output.printlog("Model reports inconsistent state. Terminating.");
+            output.printvalue("FatalError", 1);
+            return 4; // invalid state error
+
+        }
 
         // Store old data before taking a new step
         oldtime = time;
