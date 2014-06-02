@@ -15,118 +15,42 @@
 #include <iostream>
 #include <sstream>
 
-using namespace boost::property_tree;
-using namespace std;
+using std::string;
 
 class IniReader {
-	public:
+    public:
+        void read (const std::string &filename);
 
-		void read (const string &filename) {
-			// Reads the ini file
+        // These two routines allow the entire parameter structure to be imported or exported
+        // Returns the full property tree, typically so that setinidata can be used
+        boost::property_tree::ptree getdata() {return inifile;}
+        // Instead of reading an ini file, this allows the data to be submitted directly,
+        // allowing a programmatic setting of the ini data
+        void setdata(boost::property_tree::ptree data) {inifile = data;}
 
-			// If no params.ini file exists, use default parameters
-			if (!boost::filesystem::exists(filename)) {
-				cout << "Warning: " << filename << " does not exist. Using default parameters." << endl;
-			} else {
-				ini_parser::read_ini(filename, inifile);
-			}
+        // Routines that allow data to be written directly to the stored parameters
+        void setparam(const std::string &key, const std::string &section, const std::string &value);
+        void setparam(const std::string &key, const std::string &section, const double value);
+        void setparam(const std::string &key, const std::string &section, const int value);
 
-		}
+        // The following routines are all identical, but written for different data types.
+        // They all return information from the ini file, of the specified data type.
+        // The parameters are identical for each:
+        // key is the name of the key whose value is desired
+        // def is the default to be returned if no value is present
+        // section is an optional argument for the section of the ini file (defaults to no section)
+        string getiniString (const string &key, const string &def = "", const string &section = "");
+        double getiniDouble (const string &key, const double &def = 0.0, const string &section = "");
+        double getiniInt (const string &key, const int &def = 0, const string &section = "");
+        double getiniBool (const string &key, const bool &def = false, const string &section = "");
 
-        void setdata(ptree data) {
-            // Instead of reading an ini file, this allows the data to be submitted directly,
-            // allowing a programmatic setting of the ini data
-            inifile = data;
-        }
+    private:
+        // Stores the content of the ini file
+        boost::property_tree::ptree inifile;
 
-        ptree getdata() {
-            // Returns the full property tree, typically so that setinidata can be used
-            return inifile;
-        }
+        // Returns the appropriate section from the ini file
+        bool getsection(const std::string &section, boost::property_tree::ptree &result);
 
-		// The following routines are all identical, but written for different data types.
-		// They all return information from the ini file, of the specified data type.
-		// The parameters are identical for each:
-		// key is the name of the key whose value is desired
-		// def is the default to be returned if no value is present
-		// section is an optional argument for the section of the ini file (defaults to no section)
-		string getiniString (const string &key, const string &def = "", const string &section = "") {
-
-			ptree usetree;
-			if (getsection(section, usetree) == true) {
-				// The section exists (or there was no section), go and pull out the data
-				return usetree.get<string>(key, def);
-			} else {
-				// The section doesn't exist, return the default
-				return def;
-			}
-
-		}
-
-		double getiniDouble (const string &key, const double &def = 0.0, const string &section = "") {
-
-			ptree usetree;
-			if (getsection(section, usetree) == true) {
-				// The section exists (or there was no section), go and pull out the data
-				return usetree.get<double>(key, def);
-			} else {
-				// The section doesn't exist, return the default
-				return def;
-			}
-
-		}
-
-		double getiniInt (const string &key, const int &def = 0, const string &section = "") {
-
-			ptree usetree;
-			if (getsection(section, usetree) == true) {
-				// The section exists (or there was no section), go and pull out the data
-				return usetree.get<int>(key, def);
-			} else {
-				// The section doesn't exist, return the default
-				return def;
-			}
-
-		}
-
-		double getiniBool (const string &key, const bool &def = false, const string &section = "") {
-			// Note that 1 is true, anything else is false (I think?)
-
-			ptree usetree;
-			if (getsection(section, usetree) == true) {
-				// The section exists (or there was no section), go and pull out the data
-				return usetree.get<bool>(key, def);
-			} else {
-				// The section doesn't exist, return the default
-				return def;
-			}
-
-		}
-
-	private:
-		// Stores the content of the ini file
-		ptree inifile;
-
-		// Returns the appropriate section from the ini file
-		bool getsection(const string &section, ptree &result) {
-
-			// If we are not in a section, return the tree
-			if (section == "") {
-				result = inifile;
-			    return true;
-			} else {
-				// If we are in a section, try to construct the tree for that section
-				try {
-					result = inifile.get_child(section);
-				}
-				catch (...){
-					// Likely got here because that section doesn't exist
-					return false;
-				}
-			}
-			return true;
-
-		}
 };
 
 #endif /* INIREADER_H_ */

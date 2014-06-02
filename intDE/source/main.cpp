@@ -20,6 +20,10 @@
 // All the includes are hidden in the header file
 #include "main.h"
 
+using std::cout;
+using std::endl;
+using std::setprecision;
+
 // Our program entry point
 // This entry point is just a wrapper around the evolution routines.
 // It sets up the input parameters as well as the output file, and otherwise just calls the routines.
@@ -39,14 +43,9 @@ int main(int argc, char* argv[]) {
 	else
 		inifile.read("params.ini");
 
-	// Now that we have the ini file read in, we can change values programmatically as follows.
-	// Start by grabbing the tree data
-	// boost::property_tree::ptree initdata = inifile.getdata();
-	// Change a value
-	// initdata.put("Cosmology.Hubbleh", "0.7");
-	// And send it back!
-	// inifile.setdata(initdata);
-	// How easy is that?
+	// Values in the ini file can be set using the following command:
+    // inifile.setparam("desiredh", "Cosmology", 1);
+	// First parameter is the key name, the second is the section name, and the third is the value, either an integer, string or double
 
     // Set up the cosmological parameters
     Parameters *myParams = new Parameters(inifile);
@@ -118,9 +117,6 @@ int main(int argc, char* argv[]) {
             boost::timer::cpu_timer myPostTimer;
             cout << "Beginning postprocessing." << endl;
 
-            // Lodge a call to the parameters class asking it to update it's information
-            myParams->updateinfo(H0);
-
             // Perform postprocessing
             result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
 
@@ -190,7 +186,7 @@ string getfilename(const std::string &dir, const std::string &filebase, const st
 	for (int counter = 1; ; counter++) {
 		// Construct the file number
 		string filenum;
-		ostringstream convert;
+		std::ostringstream convert;
 		convert << counter;
 		filenum = convert.str();
 		// Pad the file number with the appropriate number of zeroes

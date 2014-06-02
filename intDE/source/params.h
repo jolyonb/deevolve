@@ -10,7 +10,6 @@
 #define PARAMS_H_
 
 #include <cmath>
-#include <iostream>
 #include "inireader.h"
 
 class Parameters {
@@ -19,38 +18,46 @@ class Parameters {
 		// Constructor. Sets the parameters of the model, which cannot be changed afterwards
 		Parameters (IniReader&);
 
-		// Getters for the parameters of the model
-		inline double OmegaM () {return mOmegaM;}  // Energy fraction of matter today
-		inline double OmegaB () {return mOmegaB;}  // Energy fraction of baryonic matter today
-		inline double OmegaR () {return mOmegaR;}  // Energy fraction of radiation today
-		inline double OmegaGamma () {return mOmegaGamma;}  // Energy fraction of photons today
-		inline double OmegaK () {return mOmegaK;}  // Energy fraction of spatial curvature today
+		// In this code, we normalise all densities by dividing by \rho_0 = 3 H_0^2 / 8 \pi G
+		// where H0 = 100 km/s/Mpc. This means that the dimensionless energy densities are Omega_x * h^2 in the usual parlance
+		// Getters for the dimensionless parameters of the model
+		inline double rhoM () {return mOmegaMh2;}
+		inline double rhoB () {return mOmegaBh2;}
+		inline double rhoR () {return mOmegaRh2;}
+		inline double rhoGamma () {return mOmegaGammah2;}
+		inline double rhoK () {return mOmegaKh2;}  // = -k/H_0^2
+		inline double getconH0 () {return mconh0;}  // Returns c / H0 in Mpc (where H0 = 100 km/s/Mpc)
+
+		// Getters for some basic parameters
 		inline double Tgamma () {return mT;}       // Temperature of photons today
-		inline double h () {return mh;}            // Hubble parameter is h * 100 km/s/Mpc
-		inline double H0 () {return mH0;}          // Hubble parameter today (in eV)
 		inline double Neff () {return mNeff;}      // Effective number of relativistic species (3.046 for standard neutrinos)
 		inline double z0 () {return mz0;}          // Redshift to start the evolution at
-		inline double rhoc () {return mrhoc;}      // Critical energy density (today), in units of eV^4
-		inline double DH () {return mDH;}          // Hubble distance in Mpc, c/H0
 
-		// Routine to update h and the Omega fractions based on the model's computations
-		void updateinfo(double finishH);
+		// Routine to store (and get) the value of h that has been calculated by an evolution
+		void seth(double h) {mh = h;}
+		double geth() {return mh;}
+
+		// Routine to obtain the real Omegas, after h has been obtained
+		inline double getOmegaK() {return mOmegaKh2 / mh / mh;}
+        inline double getOmegaM() {return mOmegaMh2 / mh / mh;}
+        inline double getOmegaB() {return mOmegaBh2 / mh / mh;}
+        inline double getOmegaR() {return mOmegaRh2 / mh / mh;}
+        inline double getOmegaGamma() {return mOmegaGammah2 / mh / mh;}
+        // Routine to return DH, after h as been obtained
+        inline double getDH() {return mconh0 / mh;}
 
 	private:
 		// Internal storage for values
-		double mOmegaM;
-		double mOmegaB;
-		double mOmegaR;
-		double mOmegaGamma;
-		double mOmegaK;
+		double mOmegaMh2;
+		double mOmegaBh2;
+		double mOmegaRh2;
+		double mOmegaGammah2;
+		double mOmegaKh2;
 		double mNeff;
 		double mT;
-		double mh;
-		double mH0;
 		double mz0;
-		double mrhoc;
-		double mDH;
-
+		double mh;
+        double mconh0;
 };
 
 #endif /* PARAMS_H_ */

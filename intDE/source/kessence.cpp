@@ -39,7 +39,7 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);
-	derivs[3] = - 0.5 * pow(hubble, 2.0) - 0.5 * params.OmegaR() / a2 + 0.5 * params.OmegaK() - 1.5 * a2 * press;
+    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - pow(hubble, 2.0) + params.rhoK());
 
 	// GSL_SUCCESS indicates that the computation was successful.
 	// If it failed, look up the appropriate error code in the same enum as GSL_SUCCESS
@@ -48,7 +48,6 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 
 // Function to calculate the Lagrangian and all its appropriate derivatives:
 // U, Up, Upp, UX, UXX, UXP
-// The results array should be of length 6
 int Kessence::computelagrangian(const double data[]) {
 	// First, check the data against the previous data
 	// This prevents the results being computed multiple times on the same data
@@ -142,11 +141,14 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 	section = "Kessence";
 
 	// Go and get model parameters
-	// lambda is just a parameter in the ini file. It can be used to do a single parameter scan, for example.
+	// These are just parameters in the ini file.
 	lambda = init.getiniDouble("lambda", 1.0, section);
 	alpha = init.getiniDouble("alpha", 1.0, section);
 	beta = init.getiniDouble("beta", 1.0, section);
 	n = init.getiniDouble("n", 2.0, section);
+
+    // Set the computelagrangian data to uninitialized
+    for (int i = 0; i < 4; i++) storeddata[i] = -1;
 
 	// Construct H
 	// Temporary variable
@@ -156,7 +158,7 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 	double a2 = pow(a, 2.0);
 
 	// Calculate H^2
-	temp = params.OmegaM() / a + params.OmegaR() / a2 + params.OmegaK() + a2 * energydensity(data);
+	temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
 	data[3] = pow(temp, 0.5);

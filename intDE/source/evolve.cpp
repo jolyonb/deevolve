@@ -56,6 +56,8 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
         myModel = new Kessence();
     else if (parsestring == "KGB")
         myModel = new KGB();
+    else if (parsestring == "Fr")
+        myModel = new Fr();
     else
         myModel = new LambdaCDM();    // LambdaCDM is the default
 
@@ -130,26 +132,26 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
     //*****************//
     // Post-processing //
     //*****************//
+    // (when the evolution was a success)
 
-    // We have H and z starting with high z going to z = 0. We want these reversed.
-    reverse(hubble.begin(),hubble.end());
-    reverse(redshift.begin(),redshift.end());
+    if (result == 0) {
+        // We have H and z starting with high z going to z = 0. We want these reversed.
+        reverse(hubble.begin(),hubble.end());
+        reverse(redshift.begin(),redshift.end());
 
-    // Extract the value of hubble at z = 0.
-    H0 = hubble[0];
+        // Update the parameters class with the new hubble value
+        params.seth(hubble[0]);
 
-    // We can now go through and scale the hubble vector so that H(z = 0) = 1
-    for (unsigned int i = 0; i < hubble.size(); i++) hubble[i] /= H0;
-
-    // Now go and report the actual density fractions and hubble parameter to the logs
-    double H2 = H0 * H0;
-    output.printlog("Values from evolution of model are as follows:");
-    output.printvalue("modelh", params.h() * H0);
-    output.printvalue("modelOmegaR", params.OmegaR() / H2);
-    output.printvalue("modelOmegaM", params.OmegaM() / H2);
-    output.printvalue("modelOmegaB", params.OmegaB() / H2);
-    output.printvalue("modelOmegaK", params.OmegaK() / H2);
-    output.printlog("");
+        // Now go and report the actual density fractions and hubble parameter to the logs
+        output.printlog("Values from evolution of model are as follows:");
+        output.printvalue("modelh", params.geth());
+        output.printvalue("modelOmegaR", params.getOmegaR());
+        output.printvalue("modelOmegaM", params.getOmegaM());
+        output.printvalue("modelOmegaB", params.getOmegaB());
+        output.printvalue("modelOmegaK", params.getOmegaK());
+        output.printvalue("modelOmegaLambda", 1 - params.getOmegaK() - params.getOmegaR() - params.getOmegaM());
+        output.printlog("");
+    }
 
 
     //*********//

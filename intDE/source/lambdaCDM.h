@@ -24,7 +24,7 @@ class LambdaCDM : public Model {
 		double energydensity(const double data[]);
 		double pressure(const double data[], const double hdot);
 		// Variable to store Omega_Lambda
-		double OmegaLambda;
+		double OmegaLambdah2;
 };
 
 #endif /* LAMBDACDM_H_ */

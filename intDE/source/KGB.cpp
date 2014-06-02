@@ -40,7 +40,7 @@ int KGB::derivatives(const double data[], double derivs[], Parameters &params) {
 	// P1 & P2 are computed in the "computelagrangian" call
 
 	// Split up the acceleration equation: H1 is all the "standard" contributions
-	double H1 = - 0.5 * pow(hubble, 2.0) - 0.5 * params.OmegaR() / a2 + 0.5 * params.OmegaK();
+	double H1 = - 0.5 * pow(hubble, 2.0) - 0.5 * params.rhoR() / a2 + 0.5 * params.rhoK();
 	// put it all together and compute \dot{H}
 	derivs[3]=(H1-1.5*a2*(P1+P2*(NV+NL3_1)/D)) / (1.0+1.5*a2*P2*NL3_2/D);
 
@@ -226,7 +226,7 @@ std::string KGB::init(double data[], double time, Parameters &params, IniReader 
 	// Calculate H^2
 	
 	/// NEED to modify this for computing the initial Hubble for KGB
-	temp = params.OmegaM() / a + params.OmegaR() / a2 + params.OmegaK() + a2 * energydensity(data);
+	temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
 	data[3] = pow(temp, 0.5);

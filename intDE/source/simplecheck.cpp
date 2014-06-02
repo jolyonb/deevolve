@@ -1,7 +1,5 @@
 #include "simplecheck.h"
 
-using namespace std;
-
 // Checks the state of the system after every timestep
 void SimpleCheck::checkstate (const double data[], const double time, IntParams &params, Output &output, const double status[]){
 	// We want to check the following conditions:
@@ -97,10 +95,8 @@ void SimpleCheck::checkstate (const double data[], const double time, IntParams 
 void SimpleCheck::checkfinal (const double data[], const double time, IntParams &params, Output &output, const double status[]){
 	// We want to check the following conditions:
 	// Equation of state of dark energy is very close to -1
-	// Hubble parameter is close to the measured value
 
 	bool finaleos = false;
-	bool finalhubble = false;
 
 	// Check for EOS of DE (warn if the EOS is greater than -0.9)
 	if (status[15] > -0.9) {
@@ -108,18 +104,11 @@ void SimpleCheck::checkfinal (const double data[], const double time, IntParams 
 		finaleos = true;
 	}
 
-	// Check for Hubble value
-	if (abs(status[3] - 1.0) > 0.1) {
-		output.printlog("Warning: final Hubble parameter is more than 10% away from measured value");
-		finalhubble = true;
-	}
-
 	// Report on any errors received throughout evolution
-	if (finaleos || finalhubble || friederror || phantom || superluminal || laplacian || ghost || tsuperluminal || tlaplacian || tghost || negenergy) {
+	if (finaleos || friederror || phantom || superluminal || laplacian || ghost || tsuperluminal || tlaplacian || tghost || negenergy) {
 		output.printlog("");
 		output.printlog("Warning summary:");
 		if (finaleos) output.printvalue("FinalEOS", 1);
-		if (finalhubble) output.printvalue("FinalHubble", 1);
 		if (friederror) output.printvalue("FriedError", 1);
 		if (phantom) output.printvalue("Phantom", 1);
 		if (superluminal) output.printvalue("Superluminal", 1);

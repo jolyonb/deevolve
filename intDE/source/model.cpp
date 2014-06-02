@@ -26,8 +26,6 @@
  */
 void Model::getstate(const double data[], const double time, double info[], Parameters &params) {
 
-	// The first section here should be model independent (nonminimally coupled models may differ in some definitions)
-
 	// Extract data for easier reading of the code
 	double a = data[0];
 	double phi = data[1];
@@ -62,26 +60,24 @@ void Model::getstate(const double data[], const double time, double info[], Para
 	// \ddot{phi}
 	info[7] = derivs[2];
 	// Omega_matter (present value)
-	info[8] = params.OmegaM() / a / hubble2;
+	info[8] = params.rhoM() / a / hubble2;
 	// Omega_radiation (present value)
-	info[9] = params.OmegaR() / a2 / hubble2;
+	info[9] = params.rhoR() / a2 / hubble2;
 	// Omega_k (present value)
-	info[10] = params.OmegaK() / hubble2;
+	info[10] = params.rhoK() / hubble2;
 	// Omega_Q (present value)
 	info[11] = a2 * energy / hubble2;
 	// w_total
-	info[12] = (params.OmegaR() / 3 + a4 * press) / (a * params.OmegaM() + params.OmegaR() + a4 * energy);
-	// rho_Q / rho_c
+	info[12] = (params.rhoR() / 3 + a4 * press) / (a * params.rhoM() + params.rhoR() + a4 * energy);
+	// rho_Q / rho_0
 	info[13] = energy;
-	// P_Q / rho_c
+	// P_Q / rho_0
 	info[14] = press;
 	// w_Q
 	info[15] = press / energy;
 
-	// The equation below may be model-dependent
-
 	/* The Friedmann equation reads
- 	   H^2 = \Omega_m / a + \Omega_r / a^2 + \Omega_k + a^2 \rho_Q / \rho_c
+ 	   H^2 = \Omega_m / a + \Omega_r / a^2 + \Omega_k + a^2 \rho_Q / \rho_0
  	   The components on the right may require H for their calculation, but that's ok; they're all been calculated
  	   The LHS is then the exact Hubble parameter, given the constituents on the RHS
  	   Dividing this equation by ~H, the Hubble parameter that we have, we obtain
@@ -90,8 +86,6 @@ void Model::getstate(const double data[], const double time, double info[], Para
 	   Taking the square root of that quantity, we get H / ~H.
 	   In computing the relative error in H, we want to calculate
 	   (~H - H) / ~H = 1 - H / ~H, which is easily obtained from what we have.
-	   Alternatively, we can take the negative of that, which works just as well.
-	   With the possible exception of nonminimally coupled models that may mess things up,
 	   I believe this is model independent.
 	 */
 

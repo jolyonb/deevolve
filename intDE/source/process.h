@@ -23,6 +23,8 @@
 #include <boost/filesystem.hpp> // Used for making sure sn1a file exists
 #include <iomanip>
 
+using std::vector;
+
 // We need a data type to pass a spline as well as the spline accelerator into the integration function
 struct splinetools {
     gsl_interp_accel *acc;

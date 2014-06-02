@@ -25,8 +25,8 @@ class LinearW : public Model {
 		double pressure(const double data[], const double hdot);
 		double energydensity(const double data[]);
 
-		// Omega_Lambda today
-		double OmegaLambda;
+		// Omega_Lambda h^2 today
+		double OmegaLambdah2;
 		// Equation of state w(a) = w0 + wa (1 − a)
 		double w0;
 		double wa;
