@@ -9,11 +9,9 @@
 #define BASICDUMP_H_
 
 #include "output.h"
+#include <iostream>
 #include <fstream>
 #include <iomanip>
-
-// Use the std namespace for the purposes of outputting stuff to screen
-using namespace std;
 
 class BasicDump : public Output {
 	public:
@@ -37,9 +35,9 @@ class BasicDump : public Output {
 
 	private:
 		// File output information
-		ofstream *myLog;
-		ofstream *myData;
-		ofstream *myPostData;
+		std::ofstream *myLog;
+		std::ofstream *myData;
+		std::ofstream *myPostData;
 
 };
 

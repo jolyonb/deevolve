@@ -33,7 +33,6 @@ Parameters::Parameters(IniReader &init) {
     // Compute the photon and radiation values
     // rho_0 = 3 H_0^2 / 8 pi G (in eV^4)
     double rho0 = 3.0 * pow(hubble0, 2.0) * pow(c, 5.0) * pow(hbar, 3.0) / 8 / pi / GNewton * pow(joulesinev, 4.0);
-    cout << "rho0 (check this in google): " << rho0 << endl;
     // rho_\gamma = pi^2/15 * (kT)^4
     mOmegaGammah2 = pow(pi, 2.0) / 15 * pow(mT, 4.0) * pow(kinev, 4.0) / rho0;
 	// But this is just for photons! For radiation, we need to add in neutrinos as well, which have the same energy density,

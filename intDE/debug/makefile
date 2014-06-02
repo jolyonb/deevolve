@@ -11,7 +11,7 @@ LIBS = -L/usr/local/lib -lm -lgsl -lgslcblas -L/usr/local/boost -lboost_filesyst
 
 # Make rules
 
-OBJECTS = main.o integrate.o quintessence.o basicdump.o lambdaCDM.o simplecheck.o model.o linearw.o kessence.o process.o KGB.o params.o evolve.o fr.o
+OBJECTS = main.o integrate.o quintessence.o basicdump.o lambdaCDM.o simplecheck.o model.o linearw.o kessence.o process.o KGB.o params.o evolve.o fr.o inireader.o
 
 .PHONY: all
 all: main

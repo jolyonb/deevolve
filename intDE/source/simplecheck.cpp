@@ -1,7 +1,5 @@
 #include "simplecheck.h"
 
-using namespace std;
-
 // Checks the state of the system after every timestep
 void SimpleCheck::checkstate (const double data[], const double time, IntParams &params, Output &output, const double status[]){
 	// We want to check the following conditions:

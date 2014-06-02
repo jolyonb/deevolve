@@ -10,7 +10,6 @@
 #define PARAMS_H_
 
 #include <cmath>
-#include <iostream>
 #include "inireader.h"
 
 class Parameters {

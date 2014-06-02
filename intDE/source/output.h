@@ -8,7 +8,6 @@
 #ifndef OUTPUT_H_
 #define OUTPUT_H_
 
-#include <iostream>
 #include "params.h"
 
 class Output {

@@ -1,5 +1,10 @@
 #include "basicdump.h"
 
+using std::cout;
+using std::endl;
+using std::scientific;
+using std::setprecision;
+
 // Function to print data before the run starts
 void BasicDump::printinfo(const double data[], Parameters &params) {
 
@@ -86,9 +91,9 @@ BasicDump::BasicDump(const std::string &filename, const std::string &postname) {
 	string postdatfile = filename + postname + ".dat";
 
 	// Open the log files
-	myLog = new ofstream(logfile.c_str());
-	myData = new ofstream(datfile.c_str());
-	myPostData = new ofstream(postdatfile.c_str());
+	myLog = new std::ofstream(logfile.c_str());
+	myData = new std::ofstream(datfile.c_str());
+	myPostData = new std::ofstream(postdatfile.c_str());
 
 }
 
