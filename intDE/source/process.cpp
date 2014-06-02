@@ -296,7 +296,7 @@ int PPintfunc(double z, const double data[], double derivs[], void *params) {
 	double H = gsl_spline_eval (myParams.spline, z, myParams.acc);
 
 	// Calculate the derivative
-	derivs[0] = 1 / (1.0 + z) / H;
+	derivs[0] = 1.0 / (1.0 + z) / H;
 
 	// Return success!
 	return GSL_SUCCESS;
@@ -521,6 +521,9 @@ void chi2hubble(Parameters &params, double desired, double sigma, Output &output
 	if (sigma == 0.0) return;
 
 	double x = (params.geth() - desired) / sigma;
+	if (fabs(x) < 1e-7) x = 0;
+	// If the chi^2 is less than 10^-14, then just report it as zero
+
 	output.printvalue("Hubblechi", x * x);
 
 }
@@ -574,6 +577,7 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 	// Note that what we actually want is c / H(z)
 	// What we have is the dimensionless H. So, we need c / H_0 / \tilde{H}
 	double conH0 = params.getconH0();
+	// Also recall that we have conformal H, not cosmic time H. To obtain cosmic time H, divide by a (or multiply by 1+z)
 	double DV;
 	double DV2;
 	double DV3;
@@ -603,7 +607,7 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 
 	// 6dFGS: z = 0.106
 	DAval = gsl_spline_eval (DAspline.spline, 0.106, DAspline.acc);
-	Hval = gsl_spline_eval (Hspline.spline, 0.106, Hspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.106, Hspline.acc) * 1.106;
 	DV = getDV(0.106, DAval, conH0 / Hval);
 	result = (rdrag / DV - 0.336) / 0.015;
 
@@ -612,9 +616,9 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 
 	// SDSS: z = 0.2, z = 0.35
 	DAval = gsl_spline_eval (DAspline.spline, 0.2, DAspline.acc);
-	Hval = gsl_spline_eval (Hspline.spline, 0.2, Hspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.2, Hspline.acc) * 1.2;
 	DAval2 = gsl_spline_eval (DAspline.spline, 0.35, DAspline.acc);
-	Hval2 = gsl_spline_eval (Hspline.spline, 0.35, Hspline.acc);
+	Hval2 = gsl_spline_eval (Hspline.spline, 0.35, Hspline.acc) * 1.35;
 	DV = getDV(0.2, DAval, conH0 / Hval);
 	DV2 = getDV(0.35, DAval2, conH0 / Hval2);
 
@@ -630,15 +634,15 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 
 	// WiggleZ: z = 0.44, z = 0.6, z = 0.73
 	DAval = gsl_spline_eval (DAspline.spline, 0.44, DAspline.acc);
-	Hval = gsl_spline_eval (Hspline.spline, 0.44, Hspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.44, Hspline.acc) * 1.44;
 	DV = getDV(0.44, DAval, conH0 / Hval);
 
 	DAval2 = gsl_spline_eval (DAspline.spline, 0.6, DAspline.acc);
-	Hval2 = gsl_spline_eval (Hspline.spline, 0.6, Hspline.acc);
+	Hval2 = gsl_spline_eval (Hspline.spline, 0.6, Hspline.acc) * 1.6;
 	DV2 = getDV(0.6, DAval2, conH0 / Hval2);
 
 	DAval3 = gsl_spline_eval (DAspline.spline, 0.73, DAspline.acc);
-	Hval3 = gsl_spline_eval (Hspline.spline, 0.73, Hspline.acc);
+	Hval3 = gsl_spline_eval (Hspline.spline, 0.73, Hspline.acc) * 1.73;
 	DV3 = getDV(0.73, DAval3, conH0 / Hval3);
 
 	// Convert these DV values into A values
@@ -653,7 +657,7 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 
 	// BOSS DR9: z = 0.57
 	DAval = gsl_spline_eval (DAspline.spline, 0.57, DAspline.acc);
-	Hval = gsl_spline_eval (Hspline.spline, 0.57, Hspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 0.57, Hspline.acc) * 1.57;
 	DV = getDV(0.57, DAval, conH0 / Hval);
 	result = (DV / rdrag - 13.67) / 0.22;
 
@@ -662,7 +666,7 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 
 	// BOSS DR11: z = 2.34
 	DAval = gsl_spline_eval (DAspline.spline, 2.34, DAspline.acc);
-	Hval = gsl_spline_eval (Hspline.spline, 2.34, Hspline.acc);
+	Hval = gsl_spline_eval (Hspline.spline, 2.34, Hspline.acc) * 3.34;
 	double alphapar = conH0 / Hval / rdrag / 8.708;
 	double alphaperp = DAval / rdrag / 11.59;
 	result = pow(alphapar, 0.7) * pow(alphaperp, 0.3);
