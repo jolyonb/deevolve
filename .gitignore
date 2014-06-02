@@ -18,3 +18,5 @@ intDE/logs/
 
 # Dependency information
 intDE/debug/.deps/
+
+*.gin

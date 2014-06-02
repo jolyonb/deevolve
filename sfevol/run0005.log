@@ -1,0 +1,30 @@
+Omega_m: 	0.3
+Omega_b: 	0.0459
+Omega_k: 	0
+T_gamma: 	2.72548 K
+Omega_r: 	8.5373269e-05
+h: 	0.7
+z_init: 	10000
+rho_c: 	3.9672629e-11 (eV)^4
+DH: 	4282.7494 Mpc
+
+Running Quintessence model with mass potential. Mass = 1
+
+Columns in data file are as follows.
+time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error
+
+Evolution complete in 81.09 milliseconds.
+Columns in post-processed data file are as follows. DC, DM, DA and DL are all in Mpc.
+redshift, H, DC, DM, DA, DL, mu
+
+Sound horizon scale at recombination: 143.19901 Mpc
+
+Acoustic scale: l_A = 317.67122
+Shift parameter: R = 1.8518508
+Redshift of CMB: z_CMB = 1092.0733
+
+WMAP Distance Posterior chi^2 = 901.05674
+Planck Distance Posterior chi^2 = 10094.154
+
+SN1a chi^2 = 9200.59 (computed from 580 data points)
+

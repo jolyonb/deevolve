@@ -1,0 +1,30 @@
+
+Run location: output/
+Run ID: run003
+
+Model info: 
+modID = 0 :: Quintessence :: phi^2 potential
+L = X - V(phi), where V(phi) = phi^2 / 2
+
+ INITIAL CONDITIONS
+---------------------
+z_init = 10000
+OmegaR0 = 8.53733e-05
+OmegaM0 = 0.3
+phi_init = 0.01
+phidot_init = 0
+
+
+Completion without any flagging
+
+ FINAL VALUES
+---------------------
+a_final = 1.00077
+z_final = -0.000765419
+OmegaM = 0.999455
+OmegaR = 0.000491308
+OmegaDE = 5.35616e-05
+wtot = 8.23782e-05
+wde = -0.400533
+cs2 = 1
+

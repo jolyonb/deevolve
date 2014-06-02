@@ -1,0 +1,32 @@
+
+Run location: output/
+Run ID: run006
+
+Model info: 
+modID = 2 :: k-essence :: exponential potential
+L = X^n - V(phi), where V(phi) = e^{- lambda phi}
+lambda = 1
+n = 2
+
+ INITIAL CONDITIONS
+---------------------
+z_init = 10000
+OmegaR0 = 8.53733e-05
+OmegaM0 = 0.3
+phi_init = 1
+phidot_init = 0.1
+
+
+Completion without any flagging
+
+ FINAL VALUES
+---------------------
+a_final = 1.00001
+z_final = -8.01873e-06
+OmegaM = 0.74429
+OmegaR = 0.000213113
+OmegaDE = 0.255497
+wtot = -0.243352
+wde = -0.957113
+cs2 = 0.974976
+

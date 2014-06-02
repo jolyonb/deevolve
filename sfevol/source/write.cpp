@@ -71,7 +71,7 @@ void writescreen(string *IDS, double *runinfo, double *data, int which){
             }
             if(runinfo[0]==2){
                 cout << " :: k-essence :: exponential potential" <<endl;
-                cout << "L = X^n - V(phi), where V(phi) = e^{-kappa lambda phi}" << endl;
+                cout << "L = X + X^n - V(phi), where V(phi) = e^{-kappa lambda phi}" << endl;
                 cout << "lambda = " << runinfo[1] << endl;
                 cout << "n = " << runinfo[2] << endl;
             }
