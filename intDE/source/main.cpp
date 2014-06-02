@@ -39,17 +39,10 @@ int main(int argc, char* argv[]) {
 	else
 		inifile.read("params.ini");
 
-	// Now that we have the ini file read in, we can change values programmatically as follows.
-	// Start by grabbing the tree data
-	// boost::property_tree::ptree initdata = inifile.getdata();
-	// Change a value
-	// initdata.put("Cosmology.Hubbleh", "0.7");
-	// And send it back!
-	// inifile.setdata(initdata);
-	// How easy is that?
-
     // Set up the cosmological parameters
     Parameters *myParams = new Parameters(inifile);
+
+    cout << "Test that I can write integers, doubles and strings to the parameter file programmatically." << endl;
 
 
     //**************//
@@ -117,9 +110,6 @@ int main(int argc, char* argv[]) {
 	        // Start timing!
             boost::timer::cpu_timer myPostTimer;
             cout << "Beginning postprocessing." << endl;
-
-            // Lodge a call to the parameters class asking it to update it's information
-            myParams->updateinfo(H0);
 
             // Perform postprocessing
             result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);

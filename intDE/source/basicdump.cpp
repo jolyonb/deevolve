@@ -8,15 +8,12 @@ void BasicDump::printinfo(const double data[], Parameters &params) {
 
 	// Print the header
 	*myLog << "# Cosmological parameters" << endl;
-	*myLog << "OmegaM = " << params.OmegaM() << endl;
-	*myLog << "OmegaB = " << params.OmegaB() << endl;
-	*myLog << "OmegaK = " << params.OmegaK() << endl;
+	*myLog << "OmegaMh2 = " << params.rhoM() << endl;
+	*myLog << "OmegaBh2 = " << params.rhoB() << endl;
+	*myLog << "OmegaKh2 = " << params.rhoK() << endl;
+    *myLog << "OmegaRh2 = " << params.rhoR() << endl;
 	*myLog << "Tgamma = " << params.Tgamma() << endl; // K
-	*myLog << "OmegaR = " << params.OmegaR() << endl;
-	*myLog << "h = " << params.h() << endl; // Units in which Hubble is reported (\tilde{H} = H / h * 100 km/s/Mpc)
 	*myLog << "zinit = " << params.z0() << endl;
-	*myLog << "rhoc = " << params.rhoc() << endl; // eV^4
-	*myLog << "H0 = " << params.H0() << endl; // eV
 	*myLog << "Neff = " << params.Neff() << endl << endl;
 
 }

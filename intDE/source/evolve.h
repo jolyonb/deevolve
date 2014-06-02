@@ -25,6 +25,7 @@
 #include "quintessence.h"
 #include "kessence.h"
 #include "KGB.h"
+#include "fr.h"
 
 // Standard C libraries
 #include <cmath>

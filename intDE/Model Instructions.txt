@@ -19,11 +19,11 @@ Create two files: <name>.h and <name>.cpp. We'll start by working with <name>.h.
 class <Name> : public Model {
 
 	public:
-		// Here are the functions that are overridden by the quintessence class
+		// Here are the functions that are overridden by the <Name> class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		void getstate(const double data[], const double time, double info[], Parameters &params);
-        bool isvalidconfig(const double data[]) {return true;}
 		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
+        bool isvalidconfig(const double data[]) {return true;}
 		double speedofsound2(const double data[]);
 		bool implementsSOS() {return true;}
 		bool isghost(const double data[]);
@@ -74,14 +74,14 @@ Below, we have a template for your <name>.cpp file. A number of functions are li
 
 
 Step #5.
-Go to the makefile (in the debug directory). At the end of the first line, add "<name>.o". This makes sure that your code is compiled.
+Go to the makefile (in the debug directory). At the end of the OBJECTS line, add "<name>.o". This makes sure that your code is compiled.
 
-Go to main.cpp. Under where it says "Set up the model class", add the following code to the if statement.
+Go to evolve.cpp. Under where it says "Set up the model class", add the following code to the if statement.
 
 else if (parsestring == "<Name>")
 	myModel = new <Name>();
 
-Go to main.h. Make sure to include <name>.h along with the rest of the includes.
+Go to evolve.h. Make sure to include <name>.h along with the rest of the includes.
 
 
 Step #6 (Optional).
@@ -181,7 +181,7 @@ std::string <Name>::init(double data[], double time, Parameters &params, IniRead
 	std::stringstream output;
 	output << "Running <Name> model" << std::endl;
 	output << "phi0 = " << data[1] << std::endl;
-	output << "phidot0 = " << data[2] << std::endl;
+	output << "phidot0 = " << data[2];
 	return output.str();
 
 }

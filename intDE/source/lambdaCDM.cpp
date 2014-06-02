@@ -27,12 +27,12 @@ int LambdaCDM::derivatives(const double data[], double derivs[], Parameters &par
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);
-	derivs[3] = - pow(hubble, 2.0) / 2 - params.OmegaR() / a2 / 2 + params.OmegaK() / 2 - 3.0 * a2 * press / 2.0;
+    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - pow(hubble, 2.0) + params.rhoK());
 
 	return GSL_SUCCESS;
 }
 
-// Returns the ratio rho_Q/rho_c
+// Returns the ratio rho_Q/rho_0
 double LambdaCDM::energydensity(const double data[]){
 	// Extract data for easier reading of the code
 	double a = data[0];
@@ -40,9 +40,9 @@ double LambdaCDM::energydensity(const double data[]){
 	double phidot = data[2];
 	double hubble = data[3];
 
-	return OmegaLambda;
+	return OmegaLambdah2;
 }
-// Returns the ratio P_Q/rho_c
+// Returns the ratio P_Q/rho_0
 double LambdaCDM::pressure(const double data[], const double hdot){
 	// Extract data for easier reading of the code
 	double a = data[0];
@@ -50,7 +50,7 @@ double LambdaCDM::pressure(const double data[], const double hdot){
 	double phidot = data[2];
 	double hubble = data[3];
 
-	return -OmegaLambda;
+	return -OmegaLambdah2;
 }
 
 /* This function does four things:
@@ -64,14 +64,23 @@ std::string LambdaCDM::init(double data[], double time, Parameters &params, IniR
 	// Set the name of the class
 	section = "LambdaCDM";
 
-	// Go and extract Omega_Lambda = Lambda 8 pi G / 3 / H_0^2 from the ini file
-	// where S = \int d^4x \sqrt{-g} ( m_P^2/2 R - Lambda ) defines Lambda
-	OmegaLambda = init.getiniDouble("OmegaLambda", 0.7, section);
+	// We want to construct Omega_Lambda h^2 = Lambda 8 pi G / 3 / H0^2 (where H0 = 100 km/s/Mpc)
+    // where the action S = \int d^4x \sqrt{-g} ( m_P^2/2 R - Lambda ) defines Lambda
 
-	// Check to see if we want an exact value for OmegaLambda based on the other values in the cosmology
-	if (init.getiniBool("precise", false, section)) {
-		OmegaLambda = 1 - params.OmegaK() - params.OmegaM() - params.OmegaR();
-	}
+	// There are two ways of doing this. The first is to read in Omega_Lambda, and use knowledge of all the other density fractions
+	// The second is to read in the desired value of h, and use knowledge of all the other density fractions
+
+    if (init.getiniBool("precise", false, section) == true) {
+        // Use the value of h
+        // We need to know the value of h to calculate this
+        double h = init.getiniDouble("desiredh", 0.7, "Cosmology");
+        OmegaLambdah2 = h * h - (params.rhoK() + params.rhoM() + params.rhoR());
+    } else {
+        // Use the given value of Omega_Lambda
+        double temp = init.getiniDouble("OmegaLambda", 0.7, section);
+        OmegaLambdah2 = temp / (1 - temp) * (params.rhoK() + params.rhoM() + params.rhoR());
+    }
+
 
 	// Construct H
 	// Temporary variable
@@ -81,7 +90,7 @@ std::string LambdaCDM::init(double data[], double time, Parameters &params, IniR
 	double a2 = pow(a, 2.0);
 
 	// Calculate H^2
-	temp = params.OmegaM() / a + params.OmegaR() / a2 + params.OmegaK() + a2 * energydensity(data);
+	temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
 	data[3] = pow(temp, 0.5);
@@ -96,7 +105,7 @@ std::string LambdaCDM::init(double data[], double time, Parameters &params, IniR
 	// Return a string to print to the log
 	std::stringstream output;
 	output << "Running LambdaCDM model." << std::endl;
-	output << "OmegaLambda = " << OmegaLambda;
+	output << "OmegaLambdah2 = " << OmegaLambdah2;
 	return output.str();
 
 }

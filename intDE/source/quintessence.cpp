@@ -104,7 +104,7 @@ std::string Quintessence::init(double data[], double time, Parameters &params, I
 	double a2 = pow(a, 2.0);
 
 	// Calculate H^2
-	temp = params.OmegaM() / a + params.OmegaR() / a2 + params.OmegaK() + a2 * energydensity(data);
+	temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
 	data[3] = pow(temp, 0.5);
@@ -173,12 +173,13 @@ int Quintessence::derivatives(const double data[], double derivs[], Parameters &
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);
-	derivs[3] = - 0.5 * pow(hubble, 2.0) - 0.5 * params.OmegaR() / a2 + 0.5 * params.OmegaK() - 1.5 * a2 * press;
+    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - pow(hubble, 2.0) + params.rhoK());
 
 	return GSL_SUCCESS;
 }
 
-// Returns the ratio rho_Q/rho_c
+// Returns the ratio rho_Q/rho_0
+// where rho_0 = 3 H_0^2 m_P^2 (the factor of H_0^2 m_P^2 is already factored out in the action)
 double Quintessence::energydensity(const double data[]){
 	// Extract data for easier reading of the code
 	double a = data[0];
@@ -190,7 +191,7 @@ double Quintessence::energydensity(const double data[]){
 	// The factor of 1/3 is correct. Note that a cosmological constant will contribute
 	// 8 pi G Lambda / 3 H_0^2 = Lambda / \rho_c = Omega_Lambda.
 }
-// Returns the ratio P_Q/rho_c
+// Returns the ratio P_Q/rho_0
 double Quintessence::pressure(const double data[], const double hdot){
 	// Extract data for easier reading of the code
 	double a = data[0];

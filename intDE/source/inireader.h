@@ -33,16 +33,28 @@ class IniReader {
 
 		}
 
+		// These two routines allow the entire parameter structure to be imported or exported
+        ptree getdata() {
+            // Returns the full property tree, typically so that setinidata can be used
+            return inifile;
+        }
         void setdata(ptree data) {
             // Instead of reading an ini file, this allows the data to be submitted directly,
             // allowing a programmatic setting of the ini data
             inifile = data;
         }
 
-        ptree getdata() {
-            // Returns the full property tree, typically so that setinidata can be used
-            return inifile;
+        // Routines that allow data to be written directly to the stored parameters
+        void setparm(const string &key, const string &section, const string &value) {
+            inifile.put("Cosmology.Hubbleh", "0.7");
         }
+        void setparm(const string &key, const string &section, const double value) {
+            inifile.put("Cosmology.Hubbleh", "0.7");
+        }
+        void setparm(const string &key, const string &section, const int value) {
+            inifile.put("Cosmology.Hubbleh", "0.7");
+        }
+
 
 		// The following routines are all identical, but written for different data types.
 		// They all return information from the ini file, of the specified data type.
