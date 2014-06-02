@@ -149,6 +149,7 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
         output.printvalue("modelOmegaM", params.getOmegaM());
         output.printvalue("modelOmegaB", params.getOmegaB());
         output.printvalue("modelOmegaK", params.getOmegaK());
+        output.printvalue("modelOmegaLambda", 1 - params.getOmegaK() - params.getOmegaR() - params.getOmegaM());
         output.printlog("");
     }
 
