@@ -115,6 +115,10 @@ int PostProcessingDist(vector<double>& hubble,
 		// Integrate forwards in z until we get to the point we want
 		while (currentz < zfinish) {
 
+		    // Limit the step size in order to improve accuracy
+		    if ((redshift[i] - redshift[i-1]) / 10.0 > stepsize)
+		        stepsize = (redshift[i] - redshift[i-1]) / 10.0;
+
 			// Do the integration
 			status = gsl_odeiv2_evolve_apply(evolve, control, step, &sys, &currentz, zfinish, &stepsize, data);
 
