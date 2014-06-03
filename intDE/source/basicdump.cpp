@@ -54,7 +54,6 @@ void BasicDump::printstep(const double data[], const double time, const double s
 void BasicDump::postprintheading() {
 
 	// Dumping everything. Make nice headers.
-	//*myData << "time, a, redshift, H, Hdot, phi, phidot, phiddot, Omega_m, Omega_r, Omega_k, Omega_Q, w_total, rho_Q/rho_c, P_Q/rho_c, w_Q, Error" << endl;
 	*myLog << "# Beginning postprocessing" << endl;
 	*myLog << "# Columns in post-processed data file are as follows:"
 		   << endl
@@ -67,6 +66,8 @@ void BasicDump::postprintheading() {
 	*myPostData << scientific;
 	myPostData->precision(15);
 
+	// Print headings
+    *myPostData << "# redshift, DC, DM, DA, DL, mu" << endl;
 }
 
 // Function to print information after each timestep

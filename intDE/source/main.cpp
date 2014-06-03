@@ -271,8 +271,8 @@ int doSweep(IniReader &inifile) {
     string section = inifile.getiniString("section", "Cosmology", "Sweep");
     double lower = inifile.getiniDouble("lower", -1.0, "Sweep");
     double upper = inifile.getiniDouble("upper", 1.0, "Sweep");
-    double stepsize = inifile.getiniDouble("stepsize", 0.01, "Sweep");
-    int numsteps = floor((upper - lower) / stepsize) + 1;
+    int numsteps = inifile.getiniDouble("steps", 200, "Sweep");
+    double stepsize = (upper - lower) / static_cast<double> (numsteps);
 
     // Storage for various values
     vector<double> parameter;
@@ -289,6 +289,7 @@ int doSweep(IniReader &inifile) {
 
     // Print some stuff to the screen
     cout << "Sweeping over " << param << " from " << lower << " to " << upper << " in " << numsteps << " steps." << endl;
+    cout << "Outputting to " << outputname << endl;
 
     // Start timing!
     boost::timer::cpu_timer myTimer;
@@ -330,7 +331,7 @@ int doSweep(IniReader &inifile) {
                 chisquareds.push_back(filling);
 
                 // Print the chi^2 values to file, as well as the parameter
-                myOutput->printfinal("wnaught");
+                myOutput->printfinal(param);
             }
         }
 

@@ -40,7 +40,7 @@ class Integrator {
 		}
 
 		// For information
-		inline double maxstepsize() { return 0.03; }
+		inline double maxstepsize() { return 0.005; }
 		inline double minstepsize() { return 1e-7; }
 
 	private:
