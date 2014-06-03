@@ -44,7 +44,7 @@ void IniReader::setparam(const string &key, const string &section, const int val
 }
 
 
-// The following routines are all identical, but written for different data types.
+// The following overloaded routines are all identical, but written for different data types.
 // They all return information from the ini file, of the specified data type.
 // The parameters are identical for each:
 // key is the name of the key whose value is desired
@@ -76,7 +76,7 @@ double IniReader::getiniDouble (const string &key, const double &def, const stri
 
 }
 
-double IniReader::getiniInt (const string &key, const int &def, const string &section) {
+int IniReader::getiniInt (const string &key, const int &def, const string &section) {
 
     ptree usetree;
     if (getsection(section, usetree) == true) {
@@ -89,7 +89,7 @@ double IniReader::getiniInt (const string &key, const int &def, const string &se
 
 }
 
-double IniReader::getiniBool (const string &key, const bool &def, const string &section) {
+bool IniReader::getiniBool (const string &key, const bool &def, const string &section) {
     // Note that 1 is true, anything else is false (I think?)
 
     ptree usetree;

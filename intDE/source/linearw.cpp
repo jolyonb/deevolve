@@ -57,7 +57,7 @@ double LinearW::pressure(const double data[], const double hdot){
  * - Initializes the value of H using the Friedmann equation
  * - Returns a log output
  */
-std::string LinearW::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+int LinearW::init(double data[], double time, Parameters &params, IniReader &init, Output &output) {
 
 	// Set the name of the class
 	section = "LinearW";
@@ -99,15 +99,13 @@ std::string LinearW::init(double data[], double time, Parameters &params, IniRea
 	data[1] = 0;
 	data[2] = 0;
 
-	// We have success!
-	errorstate = 0;
+    // Print stuff to the log
+    output.printlog("Running LinearW model.");
+    output.printvalue("OmegaLambdah2", OmegaLambdah2);
+    output.printvalue("wnaught", w0);
+    output.printvalue("wa", wa);
 
-	// Return a string to print to the log
-	std::stringstream output;
-	output << "Running LinearW model." << std::endl;
-	output << "OmegaLambdah2 = " << OmegaLambdah2 << std::endl;
-	output << "wnaught = " << w0 << std::endl;
-	output << "wa = " << wa;
-	return output.str();
+    // We have success!
+    return 0;
 
 }

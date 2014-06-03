@@ -33,7 +33,7 @@ class IniReader {
         void setparam(const std::string &key, const std::string &section, const double value);
         void setparam(const std::string &key, const std::string &section, const int value);
 
-        // The following routines are all identical, but written for different data types.
+        // The following overloaded routines are all identical, but written for different data types.
         // They all return information from the ini file, of the specified data type.
         // The parameters are identical for each:
         // key is the name of the key whose value is desired
@@ -41,8 +41,8 @@ class IniReader {
         // section is an optional argument for the section of the ini file (defaults to no section)
         string getiniString (const string &key, const string &def = "", const string &section = "");
         double getiniDouble (const string &key, const double &def = 0.0, const string &section = "");
-        double getiniInt (const string &key, const int &def = 0, const string &section = "");
-        double getiniBool (const string &key, const bool &def = false, const string &section = "");
+        int getiniInt (const string &key, const int &def = 0, const string &section = "");
+        bool getiniBool (const string &key, const bool &def = false, const string &section = "");
 
     private:
         // Stores the content of the ini file

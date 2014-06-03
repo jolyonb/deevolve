@@ -82,7 +82,7 @@ double Quintessence::potentialprime(const double phi){
  * - Initializes the value of H using the Friedmann equation
  * - Returns a log output
  */
-std::string Quintessence::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+int Quintessence::init(double data[], double time, Parameters &params, IniReader &init, Output &output) {
 
 	// Set class name
 	section = "Quintessence";
@@ -109,37 +109,35 @@ std::string Quintessence::init(double data[], double time, Parameters &params, I
 	// Calculate H
 	data[3] = pow(temp, 0.5);
 
-	// Mark success!
-	errorstate = 0;
-
-	// Return the description of the model
-	std::stringstream output;
+	// Print stuff to the logs
 	switch(modeltype){
 		case 1 :
 			// lambda phi^4
-			output << "Running Quintessence model with lambda phi^4 potential." << std::endl;
-			output << "Mass = " << mass << std::endl;
-			output << "lambda = " << lambda << std::endl;
+		    output.printlog("Running Quintessence model with lambda phi^4 potential.");
+		    output.printvalue("Mass", mass);
+		    output.printvalue("lambda", lambda);
 			break;
 		case 2 :
 			// Exponential
-			output << "Running Quintessence model with exponential potential." << std::endl;
-			output << "alpha = " << alpha << std::endl;
-			output << "beta = " << beta << std::endl;
+			output.printlog("Running Quintessence model with exponential potential.");
+            output.printvalue("alpha", alpha);
+            output.printvalue("beta", beta);
 			break;
 		case 3 :
 			// User defined potential
-			output << "Running Quintessence model with user-defined potential." << std::endl;
+			output.printlog("Running Quintessence model with user-defined potential.");
 			break;
 		case 0 :
 		default : // Catch all
 			// mass term only
-			output << "Running Quintessence model with mass potential." << std::endl;
-			output << "Mass = " << mass << std::endl;
+            output.printlog("Running Quintessence model with mass potential.");
+            output.printvalue("Mass", mass);
 	}
-	output << "phi0 = " << data[1] << std::endl;
-	output << "phidot0 = " << data[2];
-	return output.str();
+    output.printvalue("phi0", data[1]);
+    output.printvalue("phidot0", data[2]);
+
+	// Success!
+	return 0;
 
 }
 

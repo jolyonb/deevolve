@@ -204,7 +204,7 @@ double KGB::pressure(const double data[], const double hdot){
  * - Initializes the value of H using the Friedmann equation
  * - Returns a log output
  */
-std::string KGB::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+int KGB::init(double data[], double time, Parameters &params, IniReader &init, Output &output) {
 
 	// Set the name of the class
 	section = "KGB";
@@ -231,14 +231,13 @@ std::string KGB::init(double data[], double time, Parameters &params, IniReader 
 	// Calculate H
 	data[3] = pow(temp, 0.5);
 
-	// We have success!
-	errorstate = 0;
+    // Print stuff to the log
+    output.printlog("Running KGB model.");
+    output.printvalue("phi0", data[1]);
+    output.printvalue("phidot0", data[2]);
 
-	// Return a string to print to the log
-	std::stringstream output;
-	output << "Running KGB model. lambda = " << lambda
-			<< ", n = " << n << ", alpha = " << alpha << ", beta = " << beta;
-	return output.str();
+    // Success!
+    return 0;
 
 }
 

@@ -14,6 +14,7 @@
 
 #include "params.h"
 #include "inireader.h"
+#include "output.h"
 #include <cmath>
 // stringstreams
 #include <iostream>
@@ -38,10 +39,7 @@ class Model {
 		// if the model is evolving H.
 		// It can also read in information from the ini file if desired.
 		// The return value is a string to be output to the log
-		virtual std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate) {
-			errorstate = 0;
-			return "";
-		}
+		virtual int init(double data[], const double time, Parameters &params, IniReader &init, Output &output) = 0;
 
 		// The speedofsound2 returns the speed of sound squared, given the state of the system
 		virtual double speedofsound2(const double data[]) {return 0;}
