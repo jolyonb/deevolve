@@ -35,7 +35,7 @@
 
 
 // Function that performs the evolution
-int doEvolution(IniReader&, Parameters&, Output&, vector<double>&, vector<double>&, double&);
+int doEvolution(IniReader&, Parameters&, Output&, vector<double>&, vector<double>&);
 
 // Function that performs post-processing
 int PostProcessing(IniReader&, Parameters&, Output&, vector<double>&, vector<double>&);

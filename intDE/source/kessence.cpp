@@ -135,7 +135,7 @@ double Kessence::pressure(const double data[], const double hdot){
  * - Initializes the value of H using the Friedmann equation
  * - Returns a log output
  */
-std::string Kessence::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+int Kessence::init(double data[], double time, Parameters &params, IniReader &init, Output &output) {
 
 	// Set the name of the class
 	section = "Kessence";
@@ -163,20 +163,17 @@ std::string Kessence::init(double data[], double time, Parameters &params, IniRe
 	// Calculate H
 	data[3] = pow(temp, 0.5);
 
-	// We have success!
-	errorstate = 0;
+	// Print stuff to the log
+	output.printlog("Running Kessence model.");
+	output.printvalue("n", n);
+	output.printvalue("lambda", lambda);
+	output.printvalue("alpha", alpha);
+	output.printvalue("beta", beta);
+	output.printvalue("phi0", data[1]);
+	output.printvalue("phidot0", data[2]);
 
-	// Return a string to print to the log
-	std::stringstream output;
-	output << "Running Kessence model." << std::endl;
-	output << "n = " << n << std::endl;
-	output << "lambda = " << lambda << std::endl;
-	output << "alpha = " << alpha << std::endl;
-	output << "beta = " << beta << std::endl;
-	output << "phi0 = " << data[1] << std::endl;
-	output << "phidot0 = " << data[2];
-	return output.str();
-
+	// Success!
+	return 0;
 }
 
 // The speedofsound2 returns the speed of sound squared, given the state of the system

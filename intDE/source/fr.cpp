@@ -68,7 +68,7 @@ double Fr::pressure(const double data[], const double hdot){
  * - Initializes the value of H using the Friedmann equation
  * - Returns a log output
  */
-std::string Fr::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+int Fr::init(double data[], double time, Parameters &params, IniReader &init, Output &output) {
 
     // Set the name of the class
     section = "Fr";
@@ -99,17 +99,15 @@ std::string Fr::init(double data[], double time, Parameters &params, IniReader &
 
     data[3] = 0;
 
-    // We have success!
-    errorstate = 0;
+    // Print stuff to the log
+    output.printlog("Running F(R) model.");
+    output.printvalue("n", n);
+    output.printvalue("alpha", alpha);
+    output.printvalue("phi0", data[1]);
+    output.printvalue("phidot0", data[2]);
 
-    // Return a string to print to the log
-    std::stringstream output;
-    output << "Running F(R) model" << std::endl;
-    output << "alpha = " << alpha << std::endl;
-    output << "n = " << n << std::endl;
-    output << "phi0 = " << data[1] << std::endl;
-    output << "phidot0 = " << data[2];
-    return output.str();
+    // Success!
+    return 0;
 
 }
 

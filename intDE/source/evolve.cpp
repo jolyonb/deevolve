@@ -34,7 +34,7 @@ static int intfunc(double, const double*, double*, void*);
 // 2: NAN error
 // 3: Did not get to a = 1 in allotted time
 // 4: Model reports invalid state
-int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<double>& redshift, vector<double>& hubble, double &H0) {
+int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<double>& redshift, vector<double>& hubble) {
 
     int result = 0; // For information coming back from functions
 
@@ -96,9 +96,8 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
     // Get the output class to write out information on the run
     output.printinfo(data, params);
 
-    // Allow the model to initialize itself. Any return string will be printed to the log (can be used as an error message)
-    std::string response = myModel->init(data, starttime, params, inifile, result);
-    output.printlog(response);
+    // Allow the model to initialize itself
+    result = myModel->init(data, starttime, params, inifile, output);
     if (result != 0){
         delete myChecker;
         delete myIntParams;

@@ -22,7 +22,7 @@ class <Name> : public Model {
 		// Here are the functions that are overridden by the <Name> class
 		int derivatives(const double data[], double derivs[], Parameters &params);
 		void getstate(const double data[], const double time, double info[], Parameters &params);
-		std::string init(double data[], const double time, Parameters &params, IniReader &init, int &errorstate);
+		int init(double data[], const double time, Parameters &params, IniReader &init, Output &output);
         bool isvalidconfig(const double data[]) {return true;}
 		double speedofsound2(const double data[]);
 		bool implementsSOS() {return true;}
@@ -165,7 +165,7 @@ double <Name>::pressure(const double data[], const double hdot){
  * - Initializes the value of H using the Friedmann equation
  * - Returns a log output
  */
-std::string <Name>::init(double data[], double time, Parameters &params, IniReader &init, int &errorstate) {
+int <Name>::init(double data[], double time, Parameters &params, IniReader &init, Output &output) {
 
 	// Set the name of the class
 	section = "<Name>";
@@ -174,14 +174,13 @@ std::string <Name>::init(double data[], double time, Parameters &params, IniRead
 	// Your code here
 	data[3] = 0;
 
-	// We have success!
-	errorstate = 0;
 
-	// Return a string to print to the log
-	std::stringstream output;
-	output << "Running <Name> model" << std::endl;
-	output << "phi0 = " << data[1] << std::endl;
-	output << "phidot0 = " << data[2];
-	return output.str();
+    // Print stuff to the log
+    output.printlog("Running <Name> model.");
+    output.printvalue("phi0", data[1]);
+    output.printvalue("phidot0", data[2]);
+
+	// We have success!
+	return 0;
 
 }
