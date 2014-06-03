@@ -19,7 +19,7 @@ int main(){
 	// File name of "cosmology" prototype
 	string CPFName = "cos.ini";
 	// File name of "function" prototype
-	string FPFName = "pf.ini";
+	string FPFName = "function.ini";
 	// File name of LCDM prototype
 	string LCDMfile = "lcdm.ini";
 	// File name of "linear-w" prototype
