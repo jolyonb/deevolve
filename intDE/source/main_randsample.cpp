@@ -247,7 +247,8 @@ int doSweep(IniReader &inifile) {
     // Go and find our appropriate file name (using 4 digit numbers as the default)
     string outputname = getfilename(outputdir, basename, "", inifile.getiniInt("numberpad", 4, "Function"));
     string likelihood = outputname + postname + ".dat";
-
+	string sampdensity = outputname + "s" + ".dat";
+	
     // Set up the output class -- Print2Memory is used for sweeps
     Print2Memory *myOutput = new Print2Memory(outputname, "");
 
@@ -331,56 +332,115 @@ int doSweep(IniReader &inifile) {
     // Start timing!
     boost::timer::cpu_timer myTimer;
 
-    // Loop through the parameterspace
-	for (double stepper1 = iparams[0].lower; stepper1 <= iparams[0].upper; stepper1 += iparams[0].stepsize) {
-        // Set the parameters in the inireader
-        inifile.setparam(iparams[0].name, section, stepper1);
-		for (double stepper2 = iparams[1].lower; stepper2 <= iparams[1].upper; stepper2 += iparams[1].stepsize) {
-	        // Set the parameters in the inireader
-	        inifile.setparam(iparams[1].name, section, stepper2);
-			cout << stepper1 << " " << stepper2 <<endl;
-	        // Set up the cosmological parameters (done here in case something significant changed)
-	        Parameters *myParams = new Parameters(inifile);
+    // Loop over the desired number of samples
+	double paramval[2];
+	paramval[0] = iparams[0].lower + rand()/(double)RAND_MAX * (iparams[0].upper - iparams[0].lower);
+	paramval[1] = iparams[1].lower + rand()/(double)RAND_MAX * (iparams[1].upper - iparams[1].lower);
+	double combinedlike;
+	double maxlike = 0.0;
+	double acceptthresh = inifile.getiniDouble("acceptthresh", 0.1, "Sweep");
+	int numsamples = inifile.getiniInt("numsamples", 10, "Sweep");
+	double burnfrac = inifile.getiniDouble("burnfrac", 0.1, "Sweep");
+	
+	int burnsamples = int( burnfrac * numsamples );
+	int shakeup = inifile.getiniInt("shakeup", 10, "Sweep");
+	bool getnewvalues[2] = {true,true};
 
-	        // Do the evolution
-	        result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
+	for (int sample = 0; sample < numsamples; sample++) {
+        
+		// Set the parameters in the inireader
+		
+		inifile.setparam(iparams[0].name, section, paramval[0]);
+        inifile.setparam(iparams[1].name, section, paramval[1]);
 
-	        // Interpret the result of the evolution
-	        if (result == 0) {
-	            // Perform postprocessing
-	            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
-	            if (result == 0) {
-	                // Everything was successful. Now we can save the results!
-	                // Add the parameter value
-	                parameter1.push_back(stepper1);
-					parameter2.push_back(stepper2);
-	                // Populate the filling structure
-	                filling.data[0] = myOutput->getvalue("WMAPchi", -1.0);
-	                filling.data[1] = myOutput->getvalue("PLANCKchi", -1.0);
-	                filling.data[2] = myOutput->getvalue("SNchi", -1.0);
-	                filling.data[3] = myOutput->getvalue("Hubblechi", -1.0);
-	                filling.data[4] = myOutput->getvalue("6dFGSchi", -1.0);
-	                filling.data[5] = myOutput->getvalue("SDSSchi", -1.0);
-	                filling.data[6] = myOutput->getvalue("SDSSRchi", -1.0);
-	                filling.data[7] = myOutput->getvalue("WiggleZchi", -1.0);
-	                filling.data[8] = myOutput->getvalue("BOSSDR9chi", -1.0);
-	                filling.data[9] = myOutput->getvalue("BOSSDR11chi", -1.0);
-	                // Combine data sets: WMAP, SN, SDSSR, WiggleZ, BOSSDR9
-	                filling.data[10] = filling.data[0] + filling.data[2] + filling.data[6] + filling.data[7] + filling.data[8];
-	                // Plop that on the stack too!
-	                chisquareds.push_back(filling);
+        // Set up the cosmological parameters (done here in case something significant changed)
+        Parameters *myParams = new Parameters(inifile);
 
-	                // Print the chi^2 values to file, as well as the parameter
-	                myOutput->printfinal(iparams[0].name);
-	                myOutput->printfinal(iparams[1].name);					
-	            }
-	        }
+        // Do the evolution
+        result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
 
-	        // Clean up
-	        delete myParams;
-		} // END stepper2
-	} // END stepper1
- 
+        // Interpret the result of the evolution
+        if (result == 0) {
+			
+            // Perform postprocessing
+            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
+			
+            if (result == 0) {
+                // Everything was successful. Now we can save the results!
+                // Add the parameter value
+                parameter1.push_back(paramval[0]);
+				parameter2.push_back(paramval[1]);
+                // Populate the filling structure
+                filling.data[0] = myOutput->getvalue("WMAPchi", -1.0);
+                filling.data[1] = myOutput->getvalue("PLANCKchi", -1.0);
+                filling.data[2] = myOutput->getvalue("SNchi", -1.0);
+                filling.data[3] = myOutput->getvalue("Hubblechi", -1.0);
+                filling.data[4] = myOutput->getvalue("6dFGSchi", -1.0);
+                filling.data[5] = myOutput->getvalue("SDSSchi", -1.0);
+                filling.data[6] = myOutput->getvalue("SDSSRchi", -1.0);
+                filling.data[7] = myOutput->getvalue("WiggleZchi", -1.0);
+                filling.data[8] = myOutput->getvalue("BOSSDR9chi", -1.0);
+                filling.data[9] = myOutput->getvalue("BOSSDR11chi", -1.0);
+                // Combine data sets: WMAP, SN, SDSSR, WiggleZ, BOSSDR9
+                filling.data[10] = filling.data[0] + filling.data[2] + filling.data[6] + filling.data[7] + filling.data[8];
+                // Plop that on the stack too!
+                chisquareds.push_back(filling);
+
+                // Print the chi^2 values to file, as well as the parameter
+                myOutput->printfinal(iparams[0].name);
+                myOutput->printfinal(iparams[1].name);				
+				
+				// Get the combined likelihood for this parameter combination
+				combinedlike = exp(- 0.5 * filling.data[10]);
+				
+				// We only ever want to "not" modify our parameters after a burn-in period
+				if( sample > burnsamples ){
+					// If the current parameter choice yielded a smaller chi2 than the previous choice,
+					// first remember this chi2, then say that we dont want new parameter values.
+					if( combinedlike >= maxlike ){
+						maxlike = combinedlike;
+						for(int i = 0; i < 2; i++){
+							if( rand()/(double)RAND_MAX < acceptthresh ) {
+								getnewvalues[i] = true;
+							}
+							else{
+								getnewvalues[i] = false;
+							}
+						}
+					}
+					else{
+						for(int i = 0; i < 2; i++){
+							getnewvalues[i] = true;
+						}
+					}
+					// Force change of parameters every "shakeup" samples
+					if( sample % shakeup == 0 ){
+						for(int i = 0; i < 2; i++){
+							getnewvalues[i] = true;
+						}
+					}
+				} // END if(sample > burnsamples){}
+				
+				
+				
+				// If after all this we want new values, get them randomly here.
+				for(int i = 0; i < 2; i++){
+					if(getnewvalues[i]){
+						// THis should probably be modified: how far to move MUST be 
+						// dependnent on the likelihood...?
+						paramval[i] = iparams[i].lower + rand()/(double)RAND_MAX * (iparams[i].upper - iparams[i].lower);
+					}
+				}
+				 
+				
+            } // END if (result == 0){}
+        } // END if (result == 0){}
+		
+		
+
+        // Clean up
+        delete myParams;
+	} // END sample
 
 
     //****************//
@@ -435,6 +495,57 @@ int doSweep(IniReader &inifile) {
         outputstream << endl;
     }
     outputstream.close();
+
+
+	// Create histogram of the combined likelihood
+	int nbins[2];
+	nbins[0] = inifile.getiniInt("nbins", 10, "Sweep");;
+	nbins[1] = inifile.getiniInt("nbins", 10, "Sweep");;
+	double dp[2];
+	for(int n=0; n < 2; n++){
+		dp[n] = (iparams[n].upper - iparams[n].lower)/nbins[n];
+	}
+	double p1_min, p1_max;
+	double p2_min, p2_max;
+	
+	vector<vector <int> > bin;
+	
+	for(int i = 0; i < nbins[0]; i++){
+		vector<int>dum;
+		for(int j = 0; j < nbins[1]; j++){
+			dum.push_back(0);
+		}
+		bin.push_back(dum);
+	}
+	double dummycounter = 0;
+	for(int i = 0; i < nbins[0]; i++){
+		// lower bound on bin
+		p1_min = iparams[0].lower + i*dp[0];
+		p1_max = p1_min + dp[0];
+		for(int j = 0; j < nbins[1]; j++){
+			p2_min = iparams[1].lower + j*dp[1];
+			p2_max = p2_min + dp[1];
+			for(int n=0; n < numsteps; n++){
+				if( p1_min<parameter1[n] && parameter1[n]<p1_max ){
+					if(p2_min<parameter2[n] && parameter2[n]<p2_max){
+						bin[i][j]++;
+						dummycounter ++;
+					}
+				}
+			}
+		}
+	}
+	
+    std::ofstream sdout(sampdensity.c_str());
+	for(int i = 0; i < nbins[0]; i++){
+		for(int j = 0; j < nbins[1]; j++){
+			sdout << iparams[0].lower + i*dp[0] << " ";
+			sdout << iparams[1].lower + j*dp[1] << " ";
+			sdout << bin[i][j] << endl;
+		}
+		sdout << endl;
+	}
+	sdout.close();
 
     //**********//
     // Clean up //
