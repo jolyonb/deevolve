@@ -279,6 +279,7 @@ int doSweep(IniReader &inifile) {
 	string sweepsfile = inifile.getiniString("sweepsfile", "sweeps.txt", "Sweep");
 	// Vector to hold sweep parameters
 	vector<UPARAMS> iparams;
+	vector<SWP> dparams;
 	// Open up sweeps file
 	std::ifstream UI;
 	UI.open(sweepsfile);
@@ -288,90 +289,188 @@ int doSweep(IniReader &inifile) {
 			UPARAMS ptemp;
 			UI >> ptemp.name >> ptemp.lower >> ptemp.upper >> ptemp.stepsize;
 			ptemp.numsteps = floor((ptemp.upper - ptemp.lower) / ptemp.stepsize) + 1;
-			if(ptemp.name.substr(0,1)!="#") iparams.push_back(ptemp);
+			if(ptemp.name.substr(0,1)!="#") {
+				iparams.push_back(ptemp);
+			/*	for(double val = ptemp.lower; val <=ptemp.upper; val +=ptemp.stepsize){
+					SWP dtemp;
+					dtemp.name = ptemp.name;
+					dtemp.value = val;
+					dparams.push_back(dtemp);
+				}
+				*/
+			}
 		}
 		UI.close();
 	}
+	int numparams = iparams.size();
+	
+	
+	vector< vector<double> > pcmbs;
+	if(numparams==2){
+		for(int n=0; n < iparams[0].numsteps; n++){
+			vector<double> thispar;
+			thispar.push_back
+			for(int nn=0; nn < iparams[1].numsteps; nn++){
+				
+			}
+		}
+	}
+	
+	/*
+	// Create set of vectors;
+	// Each vector contains a vector of all combinations of the values of a
+	// particular parameter.
+	vector< vector<double> > eachparam;
+	for(int n = 0; n < numparams; n++){
+		vector<double> thisparam;
+		for(int m = 0; m < iparams[n].numsteps; m++){
+			thisparam.push_back(iparams[n].lower+m*iparams[n].stepsize);
+		}
+		eachparam.push_back(thisparam);
+	}
+	for(int PARAMID = 0; PARAMID < numparams; PARAMID++){
+		for(int PARAMVAL = 0; PARAMVAL < iparams[PARAMID].numsteps; PARAMVAL++){
+				cout << eachparam[PARAMID][PARAMVAL] << " ";
+		}
+		cout << endl;
+	}
+	
+	for(int PARAMID = 0; PARAMID < numparams; PARAMID++){
+		for(int PI2 = PARAMID+1; PI2 < numparams; PI2++){
+			for(int PARAMVAL = 0; PARAMVAL < iparams[PI2].numsteps; PARAMVAL++){
+
+				cout << eachparam[PI2][PARAMVAL] << " ";
+			}
+		}
+		cout << endl;
+	}
+	
+	int numcombs = 1;
+	for(int n = 0; n < numparams; n++){
+		numcombs*=iparams[n].numsteps;
+	}
+	
+	vector< vector<double> > paramcombs;
+	for(int c = 0; c < numcombs; c++){
+		vector<double> thiscomb;
+		
+		for(int n = 0; n < numparams; n++){
+			for(int nn=0; nn < iparams[n].numsteps; nn++){
+				thiscomb.push_back(eachparam[n][nn]);
+			}
+		}
+		
+		paramcombs.push_back(thiscomb);
+	}
+	
+	int n = 0;
+	while( n < iparams[0].numsteps ){
+		int i = 0;
+		for(int k = 0; k < numparams; k++ ){
+			i++;
+			if( i == iparams[k].numsteps ) i = 0;
+		}
+		n++;	
+	}
+	*/
 	// Report to screen
-	for(int n = 0; n < iparams.size(); n++){
+	for(int n = 0; n < numparams; n++){
 		cout << "Sweeping over ";
-		cout << iparams[n].name << " from " << iparams[n].lower << " to  ";
+		cout << iparams[n].name << " from " << iparams[n].lower << " to ";
 		cout << iparams[n].upper << ", with step-size " << iparams[n].stepsize ;
 		cout << " (number of steps = " << iparams[n].numsteps << ")" << endl;
 	}
 	
+	cout << endl;
+//	cout << "dp size = " << dparams.size() <<endl;
+	
+	
+	/*
+	for(int n = 0; n < iparams[0].numsteps; n++){
+		vector<SWP> Vals;
+		SWP tem;
+		//cout << dparams[n].value << " ";
+		tem.name = dparams[n].name;
+		tem.value = dparams[n].value;
+		Vals.push_back(tem);
+
+		for(int nn=n; nn < dparams.size(); nn++){
+			if(dparams[n].name!=dparams[nn].name){
+		//		cout << dparams[nn].value << " ";
+				Vals.push_back(dparams[nn].value);
+			}
+		}
+		cout << "(";
+		for(int nn=0; nn < Vals.size(); nn++){
+			cout << Vals[n] << " ";
+		}
+		cout << ")" << endl;
+	}
+	*/
+	  
 	// !JAP
 	
     // Storage for various values
-    vector<double> parameter1;
-    vector<double> parameter2;	
+    vector<double> parameter;
     vector<expresults> chisquareds;
     expresults filling;
     // Allocate storage space
-    parameter1.reserve(numsteps);
-    parameter2.reserve(numsteps);	
+    parameter.reserve(numsteps);
     chisquareds.reserve(numsteps);
 
 
     //*******************//
     // Perform the sweep //
     //*******************//
+	
+	// Start timing!
+	boost::timer::cpu_timer myTimer;
+	
+	for(int n = 0; n < numparams; n++){
+		// Print some stuff to the screen
+		//cout << "Doing " << iparams[n].name << " from " << iparams[n].lower << " to " << iparams[n].upper << " in " << iparams[n].numsteps << " steps." << endl;
+		// Loop through the parameterspace
+		for (double s = iparams[n].lower; s <= iparams[n].upper; s += iparams[n].stepsize) {
+		
+			    inifile.setparam(iparams[n].name, section, s);
 
-    // Print some stuff to the screen
-//    cout << "Sweeping over " << param << " from " << lower << " to " << upper << " in " << numsteps << " steps." << endl;
-
-    // Start timing!
-    boost::timer::cpu_timer myTimer;
-
-    // Loop through the parameterspace
-	for (double stepper1 = iparams[0].lower; stepper1 <= iparams[0].upper; stepper1 += iparams[0].stepsize) {
-        // Set the parameters in the inireader
-        inifile.setparam(iparams[0].name, section, stepper1);
-		for (double stepper2 = iparams[1].lower; stepper2 <= iparams[1].upper; stepper2 += iparams[1].stepsize) {
-	        // Set the parameters in the inireader
-	        inifile.setparam(iparams[1].name, section, stepper2);
-
-	        // Set up the cosmological parameters (done here in case something significant changed)
-	        Parameters *myParams = new Parameters(inifile);
-
-	        // Do the evolution
-	        result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
-
-	        // Interpret the result of the evolution
-	        if (result == 0) {
-	            // Perform postprocessing
-	            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
-	            if (result == 0) {
-	                // Everything was successful. Now we can save the results!
-	                // Add the parameter value
-	                parameter1.push_back(stepper1);
-					parameter2.push_back(stepper2);
-	                // Populate the filling structure
-	                filling.data[0] = myOutput->getvalue("WMAPchi", -1.0);
-	                filling.data[1] = myOutput->getvalue("PLANCKchi", -1.0);
-	                filling.data[2] = myOutput->getvalue("SNchi", -1.0);
-	                filling.data[3] = myOutput->getvalue("Hubblechi", -1.0);
-	                filling.data[4] = myOutput->getvalue("6dFGSchi", -1.0);
-	                filling.data[5] = myOutput->getvalue("SDSSchi", -1.0);
-	                filling.data[6] = myOutput->getvalue("SDSSRchi", -1.0);
-	                filling.data[7] = myOutput->getvalue("WiggleZchi", -1.0);
-	                filling.data[8] = myOutput->getvalue("BOSSDR9chi", -1.0);
-	                filling.data[9] = myOutput->getvalue("BOSSDR11chi", -1.0);
-	                // Combine data sets: WMAP, SN, SDSSR, WiggleZ, BOSSDR9
-	                filling.data[10] = filling.data[0] + filling.data[2] + filling.data[6] + filling.data[7] + filling.data[8];
-	                // Plop that on the stack too!
-	                chisquareds.push_back(filling);
-
-	                // Print the chi^2 values to file, as well as the parameter
-	                myOutput->printfinal("wnaught");
-	            }
-	        }
-
-	        // Clean up
-	        delete myParams;
-		}
-	}
-
+			    // Set up the cosmological parameters (done here in case something significant changed)
+			    Parameters *myParams = new Parameters(inifile);
+			    // Do the evolution
+			    result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
+			    // Interpret the result of the evolution
+			    if (result == 0) {
+			        // Perform postprocessing
+			        result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
+			        if (result == 0) {
+			            // Everything was successful. Now we can save the results!
+			            // Add the parameter value
+			            parameter.push_back(s);
+			            // Populate the filling structure
+			            filling.data[0] = myOutput->getvalue("WMAPchi", -1.0);
+			            filling.data[1] = myOutput->getvalue("PLANCKchi", -1.0);
+			            filling.data[2] = myOutput->getvalue("SNchi", -1.0);
+			            filling.data[3] = myOutput->getvalue("Hubblechi", -1.0);
+			            filling.data[4] = myOutput->getvalue("6dFGSchi", -1.0);
+			            filling.data[5] = myOutput->getvalue("SDSSchi", -1.0);
+			            filling.data[6] = myOutput->getvalue("SDSSRchi", -1.0);
+			            filling.data[7] = myOutput->getvalue("WiggleZchi", -1.0);
+			            filling.data[8] = myOutput->getvalue("BOSSDR9chi", -1.0);
+			            filling.data[9] = myOutput->getvalue("BOSSDR11chi", -1.0);
+			            // Combine data sets: WMAP, SN, SDSSR, WiggleZ, BOSSDR9
+			            filling.data[10] = filling.data[0] + filling.data[2] + filling.data[6] + filling.data[7] + filling.data[8];
+			            // Plop that on the stack too!
+			            chisquareds.push_back(filling);
+			            // Print the chi^2 values to file, as well as the parameter
+			            myOutput->printfinal("wnaught");
+			        }
+			    }
+			    // Clean up
+			    delete myParams;
+			
+			} // END s-loop
+		
+	} // END n-loop
 
     //****************//
     // Postprocessing //
@@ -413,17 +512,18 @@ int doSweep(IniReader &inifile) {
 
     // Output the likelihood data to file!
     std::ofstream outputstream(likelihood.c_str());
-    outputstream << std::scientific << setprecision(8) << "# " ;
-	outputstream << iparams[0].name << " " << iparams[1].name << " ";
-	outputstream << "\tWMAP\tPLANCK\tSN\tHubble\t6dFGS\tSDSS\tSDSSR\tWiggleZ\tBOSSDR9\tBOSSDR11\tCombined" << endl;
-	double prevparam1 = parameter1[0];
+	outputstream << std::scientific << setprecision(8) << "# ";
+	for(int n = 0; n < numparams; n++)
+    	outputstream << std::scientific << setprecision(8) << iparams[n].name << "\t";
+	
+	outputstream << std::scientific << setprecision(8) << "\tWMAP\tPLANCK\tSN\tHubble\t6dFGS\tSDSS\tSDSSR\tWiggleZ\tBOSSDR9\tBOSSDR11\tCombined" << endl;
     for (int i = 0; i < numsteps; i++) {
-		if(parameter1[i]!=prevparam1) {outputstream << endl; prevparam1 = parameter1[i];}
-        outputstream << parameter1[i] << " " << parameter2[i];
+        outputstream << parameter[i];
         for (int j = 0; j < 11; j++)
             outputstream << "\t" << likelihoods[i].data[j];
         outputstream << endl;
     }
+	
     outputstream.close();
 
     //**********//
@@ -432,8 +532,7 @@ int doSweep(IniReader &inifile) {
 
     // Stop timing
     myTimer.stop();
-    cout << setprecision(4) << "Sweep complete in " << myTimer.elapsed().wall / 1e6 << " milliseconds.";
-	cout <<" (" << numsteps << " samples)" << endl;
+    cout << setprecision(4) << "Sweep complete in " << myTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
 
     // No memory leaks!
     delete myOutput;

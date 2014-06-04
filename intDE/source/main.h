@@ -36,4 +36,14 @@ typedef struct expresults {
     double data[11];
 } expresults;
 
+// JAP
+struct UPARAMS{
+	string name;
+	double lower;
+	double upper;
+	double stepsize;
+	int numsteps;
+};
+
+// !JAP
 #endif /* MAIN_H_ */
