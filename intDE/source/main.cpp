@@ -293,13 +293,16 @@ int doSweep(IniReader &inifile) {
 		UI.close();
 	}
 	// Report to screen
+	int totnumsteps = 1;
 	for(int n = 0; n < iparams.size(); n++){
 		cout << "Sweeping over ";
 		cout << iparams[n].name << " from " << iparams[n].lower << " to  ";
 		cout << iparams[n].upper << ", with step-size " << iparams[n].stepsize ;
 		cout << " (number of steps = " << iparams[n].numsteps << ")" << endl;
+		totnumsteps*=iparams[n].numsteps;
 	}
-	
+	cout << "Total number of samples = " << totnumsteps << endl;
+	cout << "Outputting to " << outputname << endl;
 	// !JAP
 	
     // Storage for various values
@@ -308,22 +311,15 @@ int doSweep(IniReader &inifile) {
     vector<expresults> chisquareds;
     expresults filling;
     // Allocate storage space
-    parameter1.reserve(numsteps);
-    parameter2.reserve(numsteps);	
-    chisquareds.reserve(numsteps);
+    parameter1.reserve(totnumsteps);
+    parameter2.reserve(totnumsteps);	
+    chisquareds.reserve(totnumsteps);
 
 
     //*******************//
     // Perform the sweep //
     //*******************//
 
-    // Print some stuff to the screen
-<<<<<<< HEAD
-//    cout << "Sweeping over " << param << " from " << lower << " to " << upper << " in " << numsteps << " steps." << endl;
-=======
-    cout << "Sweeping over " << param << " from " << lower << " to " << upper << " in " << numsteps << " steps." << endl;
-    cout << "Outputting to " << outputname << endl;
->>>>>>> FETCH_HEAD
 
     // Start timing!
     boost::timer::cpu_timer myTimer;
@@ -331,7 +327,6 @@ int doSweep(IniReader &inifile) {
     // Loop through the parameterspace
 	for (double stepper1 = iparams[0].lower; stepper1 <= iparams[0].upper; stepper1 += iparams[0].stepsize) {
         // Set the parameters in the inireader
-<<<<<<< HEAD
         inifile.setparam(iparams[0].name, section, stepper1);
 		for (double stepper2 = iparams[1].lower; stepper2 <= iparams[1].upper; stepper2 += iparams[1].stepsize) {
 	        // Set the parameters in the inireader
@@ -369,57 +364,16 @@ int doSweep(IniReader &inifile) {
 	                chisquareds.push_back(filling);
 
 	                // Print the chi^2 values to file, as well as the parameter
-	                myOutput->printfinal("wnaught");
+	                myOutput->printfinal(iparams[0].name);
+	                myOutput->printfinal(iparams[1].name);					
 	            }
 	        }
 
 	        // Clean up
 	        delete myParams;
-		}
-	}
-=======
-        inifile.setparam(param, section, stepper);
-
-        // Set up the cosmological parameters (done here in case something significant changed)
-        Parameters *myParams = new Parameters(inifile);
-
-        // Do the evolution
-        result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
-
-        // Interpret the result of the evolution
-        if (result == 0) {
-            // Perform postprocessing
-            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
-            if (result == 0) {
-                // Everything was successful. Now we can save the results!
-                // Add the parameter value
-                parameter.push_back(stepper);
-                // Populate the filling structure
-                filling.data[0] = myOutput->getvalue("WMAPchi", -1.0);
-                filling.data[1] = myOutput->getvalue("PLANCKchi", -1.0);
-                filling.data[2] = myOutput->getvalue("SNchi", -1.0);
-                filling.data[3] = myOutput->getvalue("Hubblechi", -1.0);
-                filling.data[4] = myOutput->getvalue("6dFGSchi", -1.0);
-                filling.data[5] = myOutput->getvalue("SDSSchi", -1.0);
-                filling.data[6] = myOutput->getvalue("SDSSRchi", -1.0);
-                filling.data[7] = myOutput->getvalue("WiggleZchi", -1.0);
-                filling.data[8] = myOutput->getvalue("BOSSDR9chi", -1.0);
-                filling.data[9] = myOutput->getvalue("BOSSDR11chi", -1.0);
-                // Combine data sets: WMAP, SN, SDSSR, WiggleZ, BOSSDR9
-                filling.data[10] = filling.data[0] + filling.data[2] + filling.data[6] + filling.data[7] + filling.data[8];
-                // Plop that on the stack too!
-                chisquareds.push_back(filling);
-
-                // Print the chi^2 values to file, as well as the parameter
-                myOutput->printfinal(param);
-            }
-        }
-
-        // Clean up
-        delete myParams;
-
-    }
->>>>>>> FETCH_HEAD
+		} // END stepper2
+	} // END stepper1
+ 
 
 
     //****************//
@@ -482,7 +436,7 @@ int doSweep(IniReader &inifile) {
     // Stop timing
     myTimer.stop();
     cout << setprecision(4) << "Sweep complete in " << myTimer.elapsed().wall / 1e6 << " milliseconds.";
-	cout <<" (" << numsteps << " samples)" << endl;
+	cout << endl;
 
     // No memory leaks!
     delete myOutput;
