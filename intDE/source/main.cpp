@@ -271,8 +271,8 @@ int doSweep(IniReader &inifile) {
     string section = inifile.getiniString("section", "Cosmology", "Sweep");
     double lower = inifile.getiniDouble("lower", -1.0, "Sweep");
     double upper = inifile.getiniDouble("upper", 1.0, "Sweep");
-    double stepsize = inifile.getiniDouble("stepsize", 0.01, "Sweep");
-    int numsteps = floor((upper - lower) / stepsize) + 1;
+    int numsteps = inifile.getiniDouble("steps", 200, "Sweep");
+    double stepsize = (upper - lower) / static_cast<double> (numsteps);
 
 	// JAP
 	// Get file name containing the sweep parameters
@@ -318,7 +318,12 @@ int doSweep(IniReader &inifile) {
     //*******************//
 
     // Print some stuff to the screen
+<<<<<<< HEAD
 //    cout << "Sweeping over " << param << " from " << lower << " to " << upper << " in " << numsteps << " steps." << endl;
+=======
+    cout << "Sweeping over " << param << " from " << lower << " to " << upper << " in " << numsteps << " steps." << endl;
+    cout << "Outputting to " << outputname << endl;
+>>>>>>> FETCH_HEAD
 
     // Start timing!
     boost::timer::cpu_timer myTimer;
@@ -326,6 +331,7 @@ int doSweep(IniReader &inifile) {
     // Loop through the parameterspace
 	for (double stepper1 = iparams[0].lower; stepper1 <= iparams[0].upper; stepper1 += iparams[0].stepsize) {
         // Set the parameters in the inireader
+<<<<<<< HEAD
         inifile.setparam(iparams[0].name, section, stepper1);
 		for (double stepper2 = iparams[1].lower; stepper2 <= iparams[1].upper; stepper2 += iparams[1].stepsize) {
 	        // Set the parameters in the inireader
@@ -371,6 +377,49 @@ int doSweep(IniReader &inifile) {
 	        delete myParams;
 		}
 	}
+=======
+        inifile.setparam(param, section, stepper);
+
+        // Set up the cosmological parameters (done here in case something significant changed)
+        Parameters *myParams = new Parameters(inifile);
+
+        // Do the evolution
+        result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
+
+        // Interpret the result of the evolution
+        if (result == 0) {
+            // Perform postprocessing
+            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
+            if (result == 0) {
+                // Everything was successful. Now we can save the results!
+                // Add the parameter value
+                parameter.push_back(stepper);
+                // Populate the filling structure
+                filling.data[0] = myOutput->getvalue("WMAPchi", -1.0);
+                filling.data[1] = myOutput->getvalue("PLANCKchi", -1.0);
+                filling.data[2] = myOutput->getvalue("SNchi", -1.0);
+                filling.data[3] = myOutput->getvalue("Hubblechi", -1.0);
+                filling.data[4] = myOutput->getvalue("6dFGSchi", -1.0);
+                filling.data[5] = myOutput->getvalue("SDSSchi", -1.0);
+                filling.data[6] = myOutput->getvalue("SDSSRchi", -1.0);
+                filling.data[7] = myOutput->getvalue("WiggleZchi", -1.0);
+                filling.data[8] = myOutput->getvalue("BOSSDR9chi", -1.0);
+                filling.data[9] = myOutput->getvalue("BOSSDR11chi", -1.0);
+                // Combine data sets: WMAP, SN, SDSSR, WiggleZ, BOSSDR9
+                filling.data[10] = filling.data[0] + filling.data[2] + filling.data[6] + filling.data[7] + filling.data[8];
+                // Plop that on the stack too!
+                chisquareds.push_back(filling);
+
+                // Print the chi^2 values to file, as well as the parameter
+                myOutput->printfinal(param);
+            }
+        }
+
+        // Clean up
+        delete myParams;
+
+    }
+>>>>>>> FETCH_HEAD
 
 
     //****************//

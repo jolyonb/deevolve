@@ -8,14 +8,15 @@ Integrator::Integrator() {
 
 	// Integration method as supplied by GSL
 	const gsl_odeiv2_step_type *Type = gsl_odeiv2_step_rk8pd;
+    //const gsl_odeiv2_step_type *Type = gsl_odeiv2_step_rkf45;
 
 	// Initialize GSL
 	step = gsl_odeiv2_step_alloc(Type, numelements);
-	control = gsl_odeiv2_control_yp_new(0.0, 1e-8); // Only care about relative error (this is quite a stringent tolerance)
+	control = gsl_odeiv2_control_yp_new(0, 1.0e-8); // absolute error, relative error
 	evolve = gsl_odeiv2_evolve_alloc(numelements);
 
 	// Set the initial stepsize to be quite small, in order to get good data on derivatives at the beginning
-	stepsize = 1e-7;
+	stepsize = minstepsize();
 }
 
 Integrator::~Integrator() {
