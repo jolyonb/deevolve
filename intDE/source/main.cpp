@@ -282,13 +282,17 @@ int doSweep(IniReader &inifile) {
 	// Open up sweeps file
 	std::ifstream UI;
 	UI.open(sweepsfile);
+	bool catchsingle = false;
 	// Read in sweeps file; store in iparams
 	if(UI){
 		while(!UI.eof()){
 			UPARAMS ptemp;
 			UI >> ptemp.name >> ptemp.lower >> ptemp.upper >> ptemp.stepsize;
 			ptemp.numsteps = floor((ptemp.upper - ptemp.lower) / ptemp.stepsize) + 1;
-			if(ptemp.name.substr(0,1)!="#") iparams.push_back(ptemp);
+			if(ptemp.name.substr(0,1)!="#") {
+				iparams.push_back(ptemp);
+				if(ptemp.numsteps==1)catchsingle = true;
+			}
 		}
 		UI.close();
 	}
@@ -421,7 +425,7 @@ int doSweep(IniReader &inifile) {
 	outputstream << "\tWMAP\tPLANCK\tSN\tHubble\t6dFGS\tSDSS\tSDSSR\tWiggleZ\tBOSSDR9\tBOSSDR11\tCombined" << endl;
 	double prevparam1 = parameter1[0];
     for (int i = 0; i < numsteps; i++) {
-		if(parameter1[i]!=prevparam1) {outputstream << endl; prevparam1 = parameter1[i];}
+		if(parameter1[i]!=prevparam1 && !catchsingle) {outputstream << endl; prevparam1 = parameter1[i];}
         outputstream << parameter1[i] << " " << parameter2[i];
         for (int j = 0; j < 11; j++)
             outputstream << "\t" << likelihoods[i].data[j];
