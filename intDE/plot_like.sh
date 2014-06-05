@@ -15,7 +15,7 @@ CL=13
 
 ################################################
 
-filename=$outdir/run$1d.dat
+filename=$outdir/run$1.dat
 echo $filename
 
 gnuplot << EOF

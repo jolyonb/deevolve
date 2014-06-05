@@ -35,9 +35,6 @@
 
 
 // Function that performs the evolution
-int doEvolution(IniReader&, Parameters&, Output&, vector<double>&, vector<double>&);
-
-// Function that performs post-processing
-int PostProcessing(IniReader&, Parameters&, Output&, vector<double>&, vector<double>&);
+int doEvolution(IniReader&, Parameters&, Output&, bool postprocess = false);
 
 #endif /* EVOLVE_H_ */

@@ -1,8 +1,10 @@
 # Compiled Object files
 *.o
 
-# Compiled program
+# Compiled programs
 intDE/main
+intDE/main_sweep
+intDE/main_MCMC
 
 # Eclipse stuff
 .metadata
@@ -15,6 +17,9 @@ intDE/main
 
 # Log directory
 intDE/logs/
+
+# Plots directory
+intDE/plots/
 
 # Dependency information
 intDE/debug/.deps/

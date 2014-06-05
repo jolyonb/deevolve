@@ -23,6 +23,22 @@ using std::cout;
 using std::endl;
 using std::setprecision;
 
+// Structure for storing results from experiments
+typedef struct expresults {
+    double data[11];
+} expresults;
+
+// JAP
+struct UPARAMS{
+    string name;
+    double lower;
+    double upper;
+    double stepsize;
+    int numsteps;
+};
+
+// !JAP
+
 // Our program entry point
 // This entry point is just a wrapper around the evolution routines.
 // It sets up the input parameters as well as the output file, and otherwise just calls the routines.
@@ -46,69 +62,6 @@ int main(int argc, char* argv[]) {
     // inifile.setparam("desiredh", "Cosmology", 1);
 	// First parameter is the key name, the second is the section name, and the third is the value, either an integer, string or double
 
-	// Check to see if we're doing an individual evolution or sweeping over a parameter
-	if (inifile.getiniBool("sweeping", false, "Function") == true) {
-	    result = doSweep(inifile);
-	} else {
-	    result = doSingleEvolution(inifile);
-	}
-
-	// Exit gracefully
-	return result;
-}
-
-string getfilename(const std::string &dir, const std::string &filebase, const std::string &postbase, const int padding) {
-	// This routine takes in a directory and an output name
-	// It goes and finds the first available filename of the form dir / filebase 00001 etc
-	// eg., dir/run00001.log and dir/run00001.dat
-	// It checks that both files are free
-	// Note that even if the output is going to screen, this routine won't make anything bad happen
-
-	using namespace boost::filesystem;
-
-	// Firstly, make sure that the directory exists
-	if (!exists(dir + "/")) {
-		// Directory doesn't exist. Make it.
-		create_directory(dir);
-		std::cout << "Creating directory " << dir << "/" << endl;
-	}
-
-	// Secondly, find a unique filename
-	for (int counter = 1; ; counter++) {
-		// Construct the file number
-		string filenum;
-		std::ostringstream convert;
-		convert << counter;
-		filenum = convert.str();
-		// Pad the file number with the appropriate number of zeroes
-		int len = filenum.length();
-		for (int i = 0; i < padding - len; i++)
-			filenum = "0" + filenum;
-
-		// Check for the files
-		if (exists(dir + "/" + filebase + filenum + ".log"))
-			continue;
-		if (exists(dir + "/" + filebase + filenum + ".dat"))
-			continue;
-		if (exists(dir + "/" + filebase + filenum + postbase + ".dat"))
-			continue;
-
-		// If we got to here, we have a unique filename; return it
-		return dir + "/" + filebase + filenum;
-	}
-
-	// We really shouldn't get here, but parsers like making sure there's a return
-	return "error";
-
-}
-
-// Routine to perform a single evolution
-int doSingleEvolution(IniReader &inifile) {
-
-    int result;
-
-    // Set up the cosmological parameters
-    Parameters *myParams = new Parameters(inifile);
 
     //**************//
     // Output class //
@@ -120,149 +73,19 @@ int doSingleEvolution(IniReader &inifile) {
     string postname = inifile.getiniString("postname", "d", "Function");
 
     // Go and find our appropriate file name (using 4 digit numbers as the default)
-    string outputname = getfilename(outputdir, basename, postname, inifile.getiniInt("numberpad", 4, "Function"));
-
-    // Set up the output class
-    std::string parsestring = inifile.getiniString("outputclass", "BasicDump", "Function");
-    Output *myOutput;
-    if (parsestring == "BasicDump")
-        myOutput = new BasicDump(outputname, postname);
-    else if (parsestring == "Print2Memory")
-        myOutput = new Print2Memory(outputname, postname);
-    else
-        myOutput = new BasicDump(outputname, postname);    // BasicDump is the default
-
-    // Check that output is a go
-    if (!myOutput->filesready()) {
-        // End gracefully if not
-        cout << "Unable to open files for output." << endl;
-        delete myOutput;
-        delete myParams;
-        return -1;
-    }
-
-    // Initialize vectors to store Hubble and redshift data
-    vector<double> hubble;
-    vector<double> redshift;
-
-
-    //*******************//
-    // Do the evolution! //
-    //*******************//
-
-    // Print some stuff to the screen
-    cout << "Beginning evolution." << endl;
-    cout << "Outputting to " << outputname << endl;
-
-    // Start timing!
-    boost::timer::cpu_timer myTimer;
-
-    // Do the evolution
-    result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
-
-    // Stop timing
-    myTimer.stop();
-
-    // Interpret the result of the evolution
-    if (result == 0) {
-        // Success!
-
-        // Print a nice message
-        myOutput->printfinish(myTimer.elapsed().wall / 1e6);
-        cout << setprecision(4) << "Evolution complete in " << myTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
-
-        // Perform postprocessing if specified in the options
-        if (inifile.getiniBool("postprocess", false, "Function") == true) {
-            // Start timing!
-            boost::timer::cpu_timer myPostTimer;
-            cout << "Beginning postprocessing." << endl;
-
-            // Perform postprocessing
-            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
-
-            // Stop timing
-            myPostTimer.stop();
-
-            // Check for result of postprocessing
-            if (result == 1) {
-                cout << "Error integrating distance measures; terminating." << endl;
-            }
-            else if (result == 0) {
-                // Report done
-                cout << "Postprocessing completed in " << setprecision(4) << myPostTimer.elapsed().wall / 1e6 << " milliseconds." << endl;
-            }
-        }
-    }
-    else if (result == -1) {
-        // Initialization error
-        cout << "Error initializing model; terminating." << endl;
-    }
-    else if (result == 1) {
-        // Integration error
-        cout << "Integration error; terminating." << endl;
-    }
-    else if (result == 2) {
-        // NAN error
-        cout << "NAN error; terminating." << endl;
-    }
-    else if (result == 3) {
-        // Did not get t a = 1 error
-        cout << "Did not evolve to a = 1 within appropriate conformal time; terminating." << endl;
-    }
-    else if (result == 4) {
-        // Invalid state error
-        cout << "Invalid state reached; terminating." << endl;
-    }
-
-
-    //**********//
-    // Clean up //
-    //**********//
-
-    // Do the final print on the output class
-    myOutput->printfinal("modelOmegaR");
-
-    // No memory leaks!
-    delete myOutput;
-    delete myParams;
-
-    return 0;
-
-}
-
-// Routine to sweep over a parameter
-int doSweep(IniReader &inifile) {
-
-    int result;
-
-    //**************//
-    // Output class //
-    //**************//
-
-    // Set up the filenames to output
-    string outputdir = inifile.getiniString("logdir", "logs", "Function");
-    string basename = inifile.getiniString("runname", "run", "Function");
-    string postname = inifile.getiniString("postname", "d", "Function");
-
-    // Go and find our appropriate file name (using 4 digit numbers as the default)
-    string outputname = getfilename(outputdir, basename, "", inifile.getiniInt("numberpad", 4, "Function"));
-    string likelihood = outputname + postname + ".dat";
+    string outputname = getfilename(outputdir, basename, "", inifile.getiniInt("numberpad", 4, "Function")) + ".dat";
 	string sampdensity = outputname + "s" + ".dat";
 	
     // Set up the output class -- Print2Memory is used for sweeps
-    Print2Memory *myOutput = new Print2Memory(outputname, "");
+    Print2Memory myOutput;
 
     // Check that output is a go
-    if (!myOutput->filesready()) {
+    if (!myOutput.filesready()) {
         // End gracefully if not
         cout << "Unable to open file for output." << endl;
         delete myOutput;
         return -1;
     }
-
-    // Initialize vectors to store Hubble and redshift data
-    vector<double> hubble;
-    vector<double> redshift;
 
 
     //******************//
@@ -285,7 +108,7 @@ int doSweep(IniReader &inifile) {
 	vector<UPARAMS> iparams;
 	// Open up sweeps file
 	std::ifstream UI;
-	UI.open(sweepsfile);
+	UI.open(sweepsfile.c_str());
 	bool catchsingle = false;
 	// Read in sweeps file; store in iparams
 	if(UI){
@@ -354,42 +177,31 @@ int doSweep(IniReader &inifile) {
         inifile.setparam(iparams[1].name, section, paramval[1]);
 
         // Set up the cosmological parameters (done here in case something significant changed)
-        Parameters *myParams = new Parameters(inifile);
+        Parameters myParams(inifile);
 
         // Do the evolution
-        result = doEvolution(inifile, *myParams, *myOutput, redshift, hubble);
+        result = doEvolution(inifile, myParams, myOutput, true);
 
-        // Interpret the result of the evolution
-        if (result == 0) {
-			
-            // Perform postprocessing
-            result = PostProcessing(inifile, *myParams, *myOutput, redshift, hubble);
-			
             if (result == 0) {
                 // Everything was successful. Now we can save the results!
                 // Add the parameter value
                 parameter1.push_back(paramval[0]);
 				parameter2.push_back(paramval[1]);
                 // Populate the filling structure
-                filling.data[0] = myOutput->getvalue("WMAPchi", -1.0);
-                filling.data[1] = myOutput->getvalue("PLANCKchi", -1.0);
-                filling.data[2] = myOutput->getvalue("SNchi", -1.0);
-                filling.data[3] = myOutput->getvalue("Hubblechi", -1.0);
-                filling.data[4] = myOutput->getvalue("6dFGSchi", -1.0);
-                filling.data[5] = myOutput->getvalue("SDSSchi", -1.0);
-                filling.data[6] = myOutput->getvalue("SDSSRchi", -1.0);
-                filling.data[7] = myOutput->getvalue("WiggleZchi", -1.0);
-                filling.data[8] = myOutput->getvalue("BOSSDR9chi", -1.0);
-                filling.data[9] = myOutput->getvalue("BOSSDR11chi", -1.0);
-                // Combine data sets: WMAP, SN, SDSSR, WiggleZ, BOSSDR9
-                filling.data[10] = filling.data[0] + filling.data[2] + filling.data[6] + filling.data[7] + filling.data[8];
+                filling.data[0] = myOutput.getvalue("WMAPchi", -1.0);
+                filling.data[1] = myOutput.getvalue("PLANCKchi", -1.0);
+                filling.data[2] = myOutput.getvalue("SNchi", -1.0);
+                filling.data[3] = myOutput.getvalue("Hubblechi", -1.0);
+                filling.data[4] = myOutput.getvalue("6dFGSchi", -1.0);
+                filling.data[5] = myOutput.getvalue("SDSSchi", -1.0);
+                filling.data[6] = myOutput.getvalue("SDSSRchi", -1.0);
+                filling.data[7] = myOutput.getvalue("WiggleZchi", -1.0);
+                filling.data[8] = myOutput.getvalue("BOSSDR9chi", -1.0);
+                filling.data[9] = myOutput.getvalue("BOSSDR11chi", -1.0);
+                filling.data[10] = myOutput.getvalue("combinationchi", -1.0);
                 // Plop that on the stack too!
                 chisquareds.push_back(filling);
 
-                // Print the chi^2 values to file, as well as the parameter
-                myOutput->printfinal(iparams[0].name);
-                myOutput->printfinal(iparams[1].name);				
-				
 				// Get the combined likelihood for this parameter combination
 				combinedlike = exp(- 0.5 * filling.data[10]);
 				
@@ -433,13 +245,8 @@ int doSweep(IniReader &inifile) {
 				}
 				 
 				
-            } // END if (result == 0){}
         } // END if (result == 0){}
 		
-		
-
-        // Clean up
-        delete myParams;
 	} // END sample
 
 
@@ -482,7 +289,7 @@ int doSweep(IniReader &inifile) {
             likelihoods[i].data[j] /= filling.data[j];
 
     // Output the likelihood data to file!
-    std::ofstream outputstream(likelihood.c_str());
+    std::ofstream outputstream(outputname.c_str());
     outputstream << std::scientific << setprecision(8) << "# " ;
 	outputstream << iparams[0].name << " " << iparams[1].name << " ";
 	outputstream << "\tWMAP\tPLANCK\tSN\tHubble\t6dFGS\tSDSS\tSDSSR\tWiggleZ\tBOSSDR9\tBOSSDR11\tCombined" << endl;
@@ -556,9 +363,6 @@ int doSweep(IniReader &inifile) {
     cout << setprecision(4) << "Sweep complete in " << myTimer.elapsed().wall / 1e6 << " milliseconds.";
 	cout << endl;
 
-    // No memory leaks!
-    delete myOutput;
-
+    // Exit gracefully
     return 0;
-
 }

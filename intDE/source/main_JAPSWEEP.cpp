@@ -23,6 +23,25 @@ using std::cout;
 using std::endl;
 using std::setprecision;
 
+// Routine to perform a sweep over a parameter
+int doSweep(IniReader &inifile);
+
+// Structure for storing results from experiments
+typedef struct expresults {
+    double data[11];
+} expresults;
+
+// JAP
+struct UPARAMS{
+    string name;
+    double lower;
+    double upper;
+    double stepsize;
+    int numsteps;
+};
+
+// !JAP
+
 // Our program entry point
 // This entry point is just a wrapper around the evolution routines.
 // It sets up the input parameters as well as the output file, and otherwise just calls the routines.
@@ -55,51 +74,6 @@ int main(int argc, char* argv[]) {
 
 	// Exit gracefully
 	return result;
-}
-
-string getfilename(const std::string &dir, const std::string &filebase, const std::string &postbase, const int padding) {
-	// This routine takes in a directory and an output name
-	// It goes and finds the first available filename of the form dir / filebase 00001 etc
-	// eg., dir/run00001.log and dir/run00001.dat
-	// It checks that both files are free
-	// Note that even if the output is going to screen, this routine won't make anything bad happen
-
-	using namespace boost::filesystem;
-
-	// Firstly, make sure that the directory exists
-	if (!exists(dir + "/")) {
-		// Directory doesn't exist. Make it.
-		create_directory(dir);
-		std::cout << "Creating directory " << dir << "/" << endl;
-	}
-
-	// Secondly, find a unique filename
-	for (int counter = 1; ; counter++) {
-		// Construct the file number
-		string filenum;
-		std::ostringstream convert;
-		convert << counter;
-		filenum = convert.str();
-		// Pad the file number with the appropriate number of zeroes
-		int len = filenum.length();
-		for (int i = 0; i < padding - len; i++)
-			filenum = "0" + filenum;
-
-		// Check for the files
-		if (exists(dir + "/" + filebase + filenum + ".log"))
-			continue;
-		if (exists(dir + "/" + filebase + filenum + ".dat"))
-			continue;
-		if (exists(dir + "/" + filebase + filenum + postbase + ".dat"))
-			continue;
-
-		// If we got to here, we have a unique filename; return it
-		return dir + "/" + filebase + filenum;
-	}
-
-	// We really shouldn't get here, but parsers like making sure there's a return
-	return "error";
-
 }
 
 // Routine to perform a single evolution
