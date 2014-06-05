@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <cmath>
+#include <string>
 #include <boost/math/distributions/normal.hpp>
 using namespace std;
 
@@ -55,4 +56,8 @@ double max(double x1, double x2){
 		return x1;
 	else
 		return x2;
+}
+
+string Int2String(int Number) {
+    return static_cast<ostringstream*>( &(ostringstream() << Number) )->str();
 }
