@@ -5,6 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <cmath>
+
 using namespace std;
 
 #define _USE_MATH_DEFINES
@@ -55,4 +56,8 @@ double max(double x1, double x2){
 		return x1;
 	else
 		return x2;
+}
+
+string Int2String(int Number) {
+    return static_cast<ostringstream*>( &(ostringstream() << Number) )->str();
 }

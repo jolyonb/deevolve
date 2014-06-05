@@ -35,10 +35,6 @@ struct MarkovChain{
 	ofstream chainfile;
 };
 
-string Int2String(int Number) {
-    return static_cast<ostringstream*>( &(ostringstream() << Number) )->str();
-}
-
 
 double ComputeLikelihood(vector<double> params, vector<DATA> &data);
 vector<double> GetProposedParameters(  vector<PARAMP> priors, vector<double> current, double L_current);
@@ -71,7 +67,7 @@ int main(){
 	
 	// Get the data we want to fit
 	ifstream indata;
-	indata.open(datafile);
+	indata.open(datafile.c_str());
 	vector<DATA> data;
 	if(indata){
 		while(!indata.eof()){
@@ -84,7 +80,7 @@ int main(){
 	
 	// Get the priors
 	ifstream gps;
-	gps.open(priorsfile);
+	gps.open(priorsfile.c_str());
 	vector<PARAMP> priors;
 	if(gps){
 		while(!gps.eof()){
@@ -95,7 +91,7 @@ int main(){
 		gps.close();
 	}
 	cout << "The priors are" << endl;
-	for(int n = 0; n < priors.size(); n++)
+	for(int n = 0; n < (int) priors.size(); n++)
 		cout << priors[n].name << " :: " << priors[n].lower << " " << priors[n].upper << endl;
 	
 	// Run the chains!
@@ -143,7 +139,8 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> priors){
 		parameters.push_back(priors[param].lower + UnitRand() * (priors[param].upper - priors[param].lower));
 	
 	// Open up file to dump chain info
-	MCMC.chainfile.open( runparams.chaindir + runparams.chainfileprefix + "_" + Int2String(runparams.chainID) + ".dat");
+	string filename = runparams.chaindir + runparams.chainfileprefix + "_" + Int2String(runparams.chainID) + ".dat";
+	MCMC.chainfile.open(filename.c_str());
 	
 	
 	while( MCMC.run ){
@@ -229,7 +226,7 @@ double ComputeLikelihood(vector<double> params, vector<DATA> &data){
 	double test_c = params[1];
 	double var = 0.0;
 	
-	for(int n = 0; n < data.size(); n++ ){
+	for(int n = 0; n < (int) data.size(); n++ ){
 		double datax = data[n].x;
 		double datay = data[n].y;		
 		double testy = test_m * datax + test_c;
@@ -251,7 +248,7 @@ vector<double> GetProposedParameters(vector<PARAMP> priors, vector<double> curre
 	vector<double> proposed;
 	
 	// Loop over all parameters
-	for(int param = 0; param < priors.size(); param++){
+	for(int param = 0; param < (int) priors.size(); param++){
 		
 		// temporary holding variable of the current parameter value
 		double thisval = current[param];
