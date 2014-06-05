@@ -23,6 +23,7 @@
 typedef struct expresults {
     double data[7];
 } expresults;
+const int numchisqds = 7;
 
 using std::cout;
 using std::endl;
@@ -199,11 +200,12 @@ int main(int argc, char* argv[]) {
                 updateprogress(progress);
             }
 
-            // Update the progress bar (to make sure it shows 100% at the end)
-            barcount = 0;
-            progress = (float) ((i2 + 1) * numsteps1) / (float) totnumsteps;
-            if (showprogress) updateprogress(progress);
-            }
+        }
+
+        // Update the progress bar (to make sure it shows 100% at the end)
+        barcount = 0;
+        progress = (float) ((i2 + 1) * numsteps1) / (float) totnumsteps;
+        if (showprogress) updateprogress(progress);
     }
     // Clear the progressbar
     if (showprogress) std::cout << std::endl;
@@ -219,7 +221,6 @@ int main(int argc, char* argv[]) {
     vector<expresults> likelihoods;
     totnumsteps = chisquareds.size(); // Just in case some evolution failed and the actual number is less than we expected
     likelihoods.reserve(totnumsteps);
-	int numchisqds = 7;
     // Iterate over everything, calculating the likelihood L = e^{-chi2/2}
     for (int i = 0; i < totnumsteps; i++) {
         filling = chisquareds[i];
@@ -253,16 +254,15 @@ int main(int argc, char* argv[]) {
     outputstream << "\tWMAP\tPLANCK\tSN\tHubble\tBAO (SDSS)\tBAO (SDSSR)\tCombined" << endl;
     // Loop over all results, printing them too
     for (int i = 0; i < totnumsteps; i++) {
-		// Print new line everytime parameter2 increments
-		// - simply for plotting!
+		// Print a new line every time parameter2 increments -- for gnuplot purposes
 		if( i != 0 )
-			if( parameter2[i] != parameter2[i-1] ) 
+			if( numparams == 2 && parameter2[i] != parameter2[i-1] )
 				outputstream << endl;
 		
         outputstream << parameter1[i];
 		
         if (numparams == 2) outputstream << "\t" << parameter2[i];
-        for (int j = 0; j < 7; j++)
+        for (int j = 0; j < numchisqds; j++)
             outputstream << "\t" << likelihoods[i].data[j];
         outputstream << endl;
     }
