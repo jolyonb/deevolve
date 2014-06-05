@@ -29,7 +29,7 @@ class BasicDump : public Output {
         void printvalue(const std::string&, const int);
 
 		// Constructor
-		BasicDump(const std::string &filename = "run", const std::string &postname = "d");
+		BasicDump(bool postprocess, const std::string &filename = "run", const std::string &postname = "d");
 		// Destructor
 		~BasicDump(); // Overrides Output class
 
@@ -38,6 +38,9 @@ class BasicDump : public Output {
 		std::ofstream *myLog;
 		std::ofstream *myData;
 		std::ofstream *myPostData;
+
+		// Postprocessing?
+		bool doingpp;
 
 };
 

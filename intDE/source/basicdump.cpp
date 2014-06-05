@@ -53,6 +53,8 @@ void BasicDump::printstep(const double data[], const double time, const double s
 // Function to print a header before postprocessed output starts (e.g., column headings)
 void BasicDump::postprintheading() {
 
+    if (!doingpp) return; // We shouldn't be here if we were told that postprocessing wasn't happening
+
 	// Dumping everything. Make nice headers.
 	*myLog << "# Beginning postprocessing" << endl;
 	*myLog << "# Columns in post-processed data file are as follows:"
@@ -73,7 +75,9 @@ void BasicDump::postprintheading() {
 // Function to print information after each timestep
 void BasicDump::postprintstep(const double z, const double H, const double DC, const double DM, const double DA, const double DL, const double mu) {
 
-	// We are just dumping everything here
+    if (!doingpp) return; // We shouldn't be here if we were told that postprocessing wasn't happening
+
+    // We are just dumping everything here
 	*myPostData << z << ", "
 			    << DC << ", "
 			    << DM << ", "
@@ -84,7 +88,9 @@ void BasicDump::postprintstep(const double z, const double H, const double DC, c
 }
 
 // Constructor
-BasicDump::BasicDump(const std::string &filename, const std::string &postname) {
+BasicDump::BasicDump(bool postprocess, const std::string &filename, const std::string &postname) {
+    // Are we postprocessing? If not, don't open the postprocess file.
+    doingpp = postprocess;
 
 	// Construct filenames
 	string logfile = filename + ".log";
@@ -94,7 +100,7 @@ BasicDump::BasicDump(const std::string &filename, const std::string &postname) {
 	// Open the log files
 	myLog = new std::ofstream(logfile.c_str());
 	myData = new std::ofstream(datfile.c_str());
-	myPostData = new std::ofstream(postdatfile.c_str());
+	if (doingpp) myPostData = new std::ofstream(postdatfile.c_str());
 
 }
 
@@ -104,20 +110,28 @@ BasicDump::~BasicDump() {
 	// Close the log files...
 	myLog->close();
 	myData->close();
-	myPostData->close();
+	if (doingpp) myPostData->close();
 
 	// ... and release memory
 	delete myLog;
 	delete myData;
-	delete myPostData;
+	if (doingpp) delete myPostData;
 
 }
 
 // Did the files open correctly?
 bool BasicDump::filesready() {
 
-	if (myLog->is_open() && myData->is_open() && myPostData->is_open())
-		return true;
+	if (myLog->is_open() && myData->is_open()) {
+	    if (doingpp) {
+	        if (myPostData->is_open())
+	            return true;
+	        else
+	            return false;
+	    }
+	    else
+	        return true;
+	}
 	else
 		return false;
 
@@ -125,7 +139,7 @@ bool BasicDump::filesready() {
 
 // Print a "We're done!" message
 void BasicDump::printfinish(const double time) {
-	*myLog << setprecision(4) << "# Evolution complete in " << time << " milliseconds." << setprecision(8) << endl << endl;
+	*myLog << setprecision(4) << endl << "# Evolution complete in " << time << " milliseconds." << endl;
 }
 
 // Print a line to the log file

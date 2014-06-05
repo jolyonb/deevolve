@@ -23,9 +23,7 @@ static int intfunc(double, const double*, double*, void*);
 // inifile: the input parameters
 // params: class containing cosmological parameters (somewhat degenerate with inifile, but these values won't be read from inifile)
 // output: the outputting class
-// redshift, hubble: vectors which will contain redshift and hubble value pairs (note: these will be overwritten)
-// H0: value of the scaled hubble parameter at z = 0. Ideally, this will be 1; in practice, it's not, and things need to be rescaled
-// Note that we do not rescale the parameters in params based on H0, so as not to change any input parameters
+// postprocess: whether or not to perform postprocessing
 //
 // Return values:
 // 0: success
@@ -34,16 +32,15 @@ static int intfunc(double, const double*, double*, void*);
 // 2: NAN error
 // 3: Did not get to a = 1 in allotted time
 // 4: Model reports invalid state
-int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<double>& redshift, vector<double>& hubble) {
-
-    int result = 0; // For information coming back from functions
+// 5: Error in postprocessing integration of distance measures
+int doEvolution(IniReader& inifile, Parameters& params, Output& output, bool postprocess) {
 
     //****************//
     // Initialization //
     //****************//
 
     // Set up the integrator
-    Integrator *myIntegrator = new Integrator;
+    Integrator myIntegrator;
 
     // Set up the model class
     Model *myModel;
@@ -62,7 +59,7 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
         myModel = new LambdaCDM();    // LambdaCDM is the default
 
     // Load the model and parameters into a class to pass into the integration routine
-    IntParams *myIntParams = new IntParams(params, *myModel);
+    IntParams myIntParams(params, *myModel);
 
     // Set up the consistency check class
     parsestring = inifile.getiniString("consistencyclass", "None", "Function");
@@ -72,9 +69,11 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
     else
         myChecker = new Consistency();  // Default option, which has no checking
 
-    // Clear the redshift and hubble vectors
-    redshift.clear();
-    hubble.clear();
+    // Create vectors for redshift and hubble
+    vector<double> redshift;
+    vector<double> hubble;
+
+    int result = 0; // For information coming back from functions
 
 
     //********************//
@@ -100,18 +99,14 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
     result = myModel->init(data, starttime, params, inifile, output);
     if (result != 0){
         delete myChecker;
-        delete myIntParams;
         delete myModel;
-        delete myIntegrator;
         return -1;
     }
 
     // Check that the model has an internally consistent state with the initial data (it should have aborted already if so, but be safe)
     if (myModel->isvalidconfig(data) == false) {
         delete myChecker;
-        delete myIntParams;
         delete myModel;
-        delete myIntegrator;
         return 4;
     }
 
@@ -125,15 +120,15 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
     //***********//
 
     // Do the evolution!
-    result = BeginEvolution(*myIntegrator, *myIntParams, data, starttime, endtime, output, *myChecker, hubble, redshift);
+    result = BeginEvolution(myIntegrator, myIntParams, data, starttime, endtime, output, *myChecker, hubble, redshift);
 
 
-    //*****************//
-    // Post-processing //
-    //*****************//
-    // (when the evolution was a success)
+    //*********************************//
+    // Clean up of Hubble and Redshift //
+    //*********************************//
 
-    if (result == 0) {
+    if (result == 0) { // when the evolution was a success
+
         // We have H and z starting with high z going to z = 0. We want these reversed.
         reverse(hubble.begin(),hubble.end());
         reverse(redshift.begin(),redshift.end());
@@ -150,6 +145,91 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
         output.printvalue("modelOmegaK", params.getOmegaK());
         output.printvalue("modelOmegaLambda", 1 - params.getOmegaK() - params.getOmegaR() - params.getOmegaM());
         output.printlog("");
+
+    }
+
+
+    //*********************************//
+    // Post-processing: initialization //
+    //*********************************//
+
+    // Construct vectors for distance measures
+    int numrows = hubble.size();
+    vector<double> DC;
+    vector<double> DM;
+    vector<double> DA;
+    vector<double> DL;
+    vector<double> mu;
+    // Other distances that are computed
+    double rs; // sound horizon at z_CMB
+    double rd; // sound horizon at z_drag
+
+    //*******************//
+    // Distance measures //
+    //*******************//
+
+    if (result == 0 && postprocess) { // when the evolution was a success AND we're doing the postprocessing
+
+        // Get the output class to print any headings for postprocessing
+        output.postprintheading();
+
+        // Allocate space for the vectors
+        DC.reserve(numrows);
+        DM.reserve(numrows);
+        DA.reserve(numrows);
+        DL.reserve(numrows);
+        mu.reserve(numrows);
+
+        // Calculate distance measurements
+        result = PostProcessingDist(hubble, redshift, DC, DM, DA, DL, mu, rs, rd, params, output);
+
+        // Flag any errors
+        if (result == 1) result = 5;
+
+    }
+
+
+    //**************//
+    // chi^2 values //
+    //**************//
+
+    if (result == 0 && postprocess) { // when the distance calculations were a success AND we're doing the postprocessing
+
+        double BAOchi, BAOrchi, WMAPchi, Planckchi, Hubblechi, SNchi;
+
+        // Put in some whitespace!
+        output.printlog("");
+
+        // First, do chi^2 of WMAP and Planck distance posteriors
+        chi2CMB(redshift, DA, rs, output, params, WMAPchi, Planckchi);
+
+        // Next, do chi^2 of SN1a
+        SNchi = chi2SN1a(redshift, mu, output, inifile);
+
+        // Do chi^2 for hubble value
+        Hubblechi = chi2hubble(params, inifile.getiniDouble("desiredh", 0.7, "Cosmology"), inifile.getiniDouble("sigmah", 0.03, "Cosmology"), output);
+
+        // Finally, do chi^2 of BAO measurements
+        chi2BAO(rd, redshift, hubble, DA, params, output, BAOchi, BAOrchi);
+
+        // Calculate the combination chi^2 from the bitmask
+        double combination = 0;
+        unsigned int bitmask = params.getbitmask();
+        // 1 = SN1a
+        // 2 = BAO (using SDSS)
+        // 4 = BAO (using SDSSR)
+        // 8 = Hubble
+        // 16 = WMAP
+        // 32 = Planck
+        combination += (bitmask & 1) * SNchi;
+        combination += ((bitmask & 2) >> 1) * BAOchi;
+        combination += ((bitmask & 4) >> 2) * BAOrchi;
+        combination += ((bitmask & 8) >> 3) * Hubblechi;
+        combination += ((bitmask & 16) >> 4) * WMAPchi;
+        combination += ((bitmask & 32) >> 5) * Planckchi;
+        output.printvalue("combinationchi", combination);
+        output.printvalue("chicombo", (int) bitmask);
+
     }
 
 
@@ -159,88 +239,11 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<d
 
     // All these classes have now done their job, and can go away
     delete myChecker;
-    delete myIntParams;
     delete myModel;
-    delete myIntegrator;
 
     // Return the result of the evolution
     return result;
-}
 
-
-// Perform post-processing duties
-// These include calculating distance measures and chi^2 values
-//
-// Input parameters:
-// inifile: the input parameters
-// params: class containing cosmological parameters (somewhat degenerate with inifile, but these values won't be read from inifile)
-// output: the outputting class
-// redshift, hubble: vectors containing redshift and hubble value pairs
-//
-// Note that the Parameters class should be updated to the value of h that was found in the evolution
-//
-// Return values:
-// 0: success
-// 1: error integrating distance measures
-int PostProcessing(IniReader& inifile, Parameters& params, Output& output, vector<double>& redshift, vector<double>& hubble) {
-
-    //****************//
-    // Initialization //
-    //****************//
-
-    // Construct vectors for other quantities
-    vector<double> DC;
-    vector<double> DM;
-    vector<double> DA;
-    vector<double> DL;
-    vector<double> mu;
-    // Allocate space for the vectors
-    int numrows = hubble.size();
-    DC.reserve(numrows);
-    DM.reserve(numrows);
-    DA.reserve(numrows);
-    DL.reserve(numrows);
-    mu.reserve(numrows);
-
-    // Other distances that are computed
-    double rs; // sound horizon at z_CMB
-    double rd; // sound horizon at z_drag
-
-
-    // Get the output class to print any headings for postprocessing
-    output.postprintheading();
-
-
-    //*******************//
-    // Distance measures //
-    //*******************//
-
-    // Postprocess the hubble and redshift data into distance measurements
-    int result = PostProcessingDist(hubble, redshift, DC, DM, DA, DL, mu, rs, rd, params, output);
-
-    // Get out if there was an error
-    if (result == 1) return 1;
-
-    //**************//
-    // chi^2 values //
-    //**************//
-
-    // Put in some whitespace!
-    output.printlog("");
-
-    // First, do chi^2 of WMAP and Planck distance posteriors
-    chi2CMB(redshift, DA, rs, output, params);
-
-    // Next, do chi^2 of SN1a
-    chi2SN1a(redshift, mu, output, inifile);
-
-    // Do chi^2 for hubble value
-    chi2hubble(params, inifile.getiniDouble("desiredh", 0.7, "Cosmology"), inifile.getiniDouble("sigmah", 0.03, "Cosmology"), output);
-
-    // Finally, do chi^2 of BAO measurements
-    chi2BAO(rd, redshift, hubble, DA, params, output);
-
-    return 0;
 }
 
 

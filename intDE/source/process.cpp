@@ -342,8 +342,9 @@ double rsintfuncinf(double z, void *params) {
 
 }
 
-void chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniReader &init) {
+double chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniReader &init) {
 	// This routine computes the chi^2 value for supernovae measurements
+    // Returns the chi^2 value, as well as sending it to the output class
 
 	// Step 1: We will need to know mu at specific redshifts. Construct the required interpolater.
 
@@ -353,6 +354,7 @@ void chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniR
 	double* pz = &redshift[1];
 	double* pmu = &mu[1];
 	int numrows = redshift.size() - 1;
+    double chi2 = 0;
 
 	// Initialize the splines
 	// Distance modulus is used for the SN1a data
@@ -400,7 +402,6 @@ void chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniR
 		// information that is not of use to us.
 
 		// Iterate through each row, and construct the chi^2
-		double chi2 = 0;
 		double val = 0;
 		int numrows = rows.size();
 		for (int i = 0; i < numrows; i++) {
@@ -410,9 +411,6 @@ void chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniR
 		}
 
 		// Having gotten here, present the results
-		std::stringstream printing;
-		printing << "SN1a chi^2 computed from " << rows.size() << " data points";
-		output.printlog(printing.str());
 		output.printvalue("SNchi", chi2);
 		// The minimum chi^2 for LambdaCDM for this data set is ~562.5
 
@@ -426,10 +424,13 @@ void chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniR
 	gsl_spline_free (muspline.spline);
 	gsl_interp_accel_free (muspline.acc);
 
+	return chi2;
+
 }
 
-void chi2CMB(vector<double>& redshift, vector<double>& DA, double rs, Output &output, Parameters &params) {
+void chi2CMB(vector<double>& redshift, vector<double>& DA, double rs, Output &output, Parameters &params, double &WMAP, double&Planck) {
 	// This routine computes the chi^2 value for CMB distance posteriors
+    // Returns the chi^2 values in WMAP and Planck
 
 	// We use the WMAP distance posteriors on the acoustic scale and the shift parameter
 	// See http://lambda.gsfc.nasa.gov/product/map/dr3/pub_papers/fiveyear/cosmology/wmap_5yr_cosmo_reprint.pdf
@@ -471,6 +472,9 @@ void chi2CMB(vector<double>& redshift, vector<double>& DA, double rs, Output &ou
     output.printlog(""); // Whitespace!
     output.printvalue("WMAPchi", chi2wmap);
     output.printvalue("PLANCKchi", chi2p);
+
+    WMAP = chi2wmap;
+    Planck = chi2p;
 
 }
 
@@ -520,15 +524,17 @@ double chi2Planck (double lA, double R, double z) {
 }
 
 // Routine to compute a chi^2 value for hubble, based on some desired value
-void chi2hubble(Parameters &params, double desired, double sigma, Output &output){
+double chi2hubble(Parameters &params, double desired, double sigma, Output &output){
 
-	if (sigma == 0.0) return;
+	if (sigma == 0.0) return 0;
 
 	double x = (params.geth() - desired) / sigma;
 	if (fabs(x) < 1e-7) x = 0;
 	// If the chi^2 is less than 10^-14, then just report it as zero
 
 	output.printvalue("Hubblechi", x * x);
+
+	return x * x;
 
 }
 
@@ -566,9 +572,10 @@ static inline double getWiggleZresult(double A44, double A6, double A73) {
 }
 
 // Routine to compute chi^2 values for BAO observations
-void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vector<double>& DA, Parameters &params, Output &output) {
+void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vector<double>& DA, Parameters &params, Output &output, double &chitotal, double &chirtotal) {
 	// Takes in the sound horizon at the drag epoch (in Mpc), the redshift, hubble and angular diameter distance measures,
 	// the evolution parameters (we're going to need Omega_M), and the output class for logging purposes.
+    // Returns the sum of BAO chi^2 values in chitotal (SDSS) and chirtotal (SDSSr)
 
 	// Each separate experiment seems to have their own way of presenting results, so we'll have to do them one by one, carefully
 	// We'll need to interpolate to obtain H(z) and DA(z) values
@@ -586,9 +593,9 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 	double DV2;
 	double DV3;
 	double result;
-
-	// Print a little heading
-	output.printlog("BAO chi^2 values:");
+	// Zero the running totals
+	chitotal = 0; // Using SDSS
+	chirtotal = 0; // Using SDSSR
 
 	// Extract the appropriate data
 	double* pz = &redshift[0];
@@ -616,6 +623,8 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 	result = (rdrag / DV - 0.336) / 0.015;
 
 	output.printvalue("6dFGSchi", result * result);
+    chitotal += result * result;
+    chirtotal += result * result;
 
 
 	// SDSS: z = 0.2, z = 0.35
@@ -628,12 +637,13 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 
 	result = getSDSSresult(rdrag / DV, rdrag / DV2);
 	output.printvalue("SDSSchi", result);
-
+    chitotal += result;
 
 	// SDSSR: z = 0.35
 	// Use DV2 from above
 	result = (DV2 / rdrag - 8.88) / 0.17;
 	output.printvalue("SDSSRchi", result * result);
+    chirtotal += result * result;
 
 
 	// WiggleZ: z = 0.44, z = 0.6, z = 0.73
@@ -657,6 +667,8 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 
 	result = getWiggleZresult(A1, A2, A3);
 	output.printvalue("WiggleZchi", result);
+    chitotal += result;
+    chirtotal += result;
 
 
 	// BOSS DR9: z = 0.57
@@ -666,6 +678,8 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 	result = (DV / rdrag - 13.67) / 0.22;
 
 	output.printvalue("BOSSDR9chi", result * result);
+    chitotal += result * result;
+    chirtotal += result * result;
 
 
 	// BOSS DR11: z = 2.34
@@ -677,6 +691,13 @@ void chi2BAO(double rdrag, vector<double>& redshift, vector<double>& hubble, vec
 	double chi = (result - 1.025) / 0.021;
 
 	output.printvalue("BOSSDR11chi", chi * chi);
+    chitotal += chi * chi;
+    chirtotal += chi * chi;
+
+
+    // Totals
+    output.printvalue("BAOtotalchi", chitotal);
+    output.printvalue("BAOtotalrchi", chirtotal);
 
 
 	// Release the spline memory

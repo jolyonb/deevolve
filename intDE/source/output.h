@@ -27,7 +27,7 @@ class Output {
 		// Function to print information for postprocessing data after each time step
 		virtual void postprintstep(const double z, const double H, const double DC, const double DM, const double DA, const double DL, const double mu) {}
 
-		// Function to print information after run is complete (time is given in milliseconds)
+		// Function to print information after run is complete (time is given in milliseconds, if measured)
 		virtual void printfinish(const double time) {}
 
 		// Routine to print a line to the log file
@@ -39,19 +39,15 @@ class Output {
 		virtual void printvalue(const std::string&, const double) {}
         virtual void printvalue(const std::string&, const int) {}
 
-        // Function to print information after everything is finished
-        // Two optional parameters are passed in
-        virtual void printfinal(const std::string& = "", const int = 0) {}
 
-
-		// Constructor with optional file name
-		Output(const std::string &filename = "run", const std::string &postname = "d") {}
+		// Constructor with file name and whether or not postprocessing is happening
+		Output(bool postprocess = false, const std::string &filename = "run", const std::string &postname = "d") {}
 
 		// Virtual destructor
 		virtual ~Output() {}
 
 		// Check to ensure that output is ready (if not outputting to a file, just return true)
-		virtual bool filesready() = 0;
+		virtual bool filesready() {return true;}
 
 };
 

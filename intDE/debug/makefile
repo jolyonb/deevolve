@@ -11,16 +11,25 @@ LIBS = -L/usr/local/lib -lm -lgsl -lgslcblas -L/usr/local/boost -lboost_filesyst
 
 # Make rules
 
-OBJECTS = main_randsample.o integrate.o quintessence.o basicdump.o lambdaCDM.o simplecheck.o model.o linearw.o kessence.o process.o KGB.o params.o evolve.o fr.o inireader.o print2memory.o
+OBJECTS = integrate.o quintessence.o basicdump.o lambdaCDM.o simplecheck.o model.o linearw.o kessence.o process.o KGB.o params.o evolve.o fr.o inireader.o print2memory.o
+OBJECTMAIN = main.o 
+OBJECTSWEEP = main_sweep.o 
+OBJECTMCMC = main_MCMC.o 
 
 .PHONY: all
-all: main
+all: main main_sweep main_MCMC
 
-main: $(OBJECTS)
-	$(CC) $(OBJECTS) $(LIBS) -o ../$@
+main: $(OBJECTS) $(OBJECTMAIN)
+	$(CC) $(OBJECTS) $(OBJECTMAIN) $(LIBS) -o ../$@
+
+main_sweep: $(OBJECTS) $(OBJECTSWEEP)
+	$(CC) $(OBJECTS) $(OBJECTSWEEP) $(LIBS) -o ../$@
+
+main_sweep: $(OBJECTS) $(OBJECTMCMC)
+	$(CC) $(OBJECTS) $(OBJECTMCMC) $(LIBS) -o ../$@
 
 clean:
-	-rm -rf $(OBJECTS) ../main .deps
+	-rm -rf $(OBJECTS) $(OBJECTMAIN) $(OBJECTSWEEP) $(OBJECTMCMC) ../main ../main_sweep ../main_MCMC .deps
 
 ifeq ($(USER),jolyon)
 # Fancy dependency stuff: stores the dependencies of each source file, so that if headers are updated, it knows which to recompile
@@ -32,6 +41,9 @@ DEPDIR = .deps
 	$(COMPILE.c) -o $@ -c $(INC) $<
 
 -include $(OBJECTS:%.o=$(DEPDIR)/%.P)
+-include $(OBJECTMAIN:%.o=$(DEPDIR)/%.P)
+-include $(OBJECTSWEEP:%.o=$(DEPDIR)/%.P)
+-include $(OBJECTMCMC:%.o=$(DEPDIR)/%.P)
 else
 %.o: ../source/%.cpp
 	$(CC) -c $(INC) $< -o $@

@@ -47,4 +47,10 @@ Parameters::Parameters(IniReader &init) {
 	// Set h to zero to indicate that it hasn't been initialized
 	mh = 0.0;
 
+	// Store the bitmask
+	int bitmaskcheck = init.getiniInt("chicombo", 29, "Function");
+	if (bitmaskcheck < 1) bitmaskcheck = 29;
+	if (bitmaskcheck > 127) bitmaskcheck = 29;
+	bitmask = bitmaskcheck;
+
 }

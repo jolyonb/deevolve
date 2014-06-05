@@ -46,6 +46,10 @@ class Parameters {
         // Routine to return DH, after h as been obtained
         inline double getDH() {return mconh0 / mh;}
 
+        // The bitmask used to determine which combination of data sets are used
+        inline unsigned int getbitmask() {return bitmask;}
+
+
 	private:
 		// Internal storage for values
 		double mOmegaMh2;
@@ -58,6 +62,7 @@ class Parameters {
 		double mz0;
 		double mh;
         double mconh0;
+        unsigned int bitmask;
 };
 
 #endif /* PARAMS_H_ */
