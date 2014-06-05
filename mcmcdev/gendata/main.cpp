@@ -11,7 +11,7 @@ int main(){
 	
 	int ndps = 20;
 	double m_fid = 1.0;
-	double c_fid = 2.0;
+	double c_fid = 15.0;
 	double m_off = 0.1;
 	double c_off = 0.1;
 	for(int dat = 0; dat < ndps; dat++){
