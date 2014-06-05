@@ -21,7 +21,7 @@
 
 // Structure for storing results in a vector
 typedef struct expresults {
-    double data[11];
+    double data[7];
 } expresults;
 
 using std::cout;
@@ -180,17 +180,13 @@ int main(int argc, char* argv[]) {
                 if (numparams == 2) parameter2.push_back(stepper2);
 
                 // Extract the chi^2 values
-                filling.data[0] = myOutput.getvalue("WMAPchi", -1.0);
-                filling.data[1] = myOutput.getvalue("PLANCKchi", -1.0);
-                filling.data[2] = myOutput.getvalue("SNchi", -1.0);
-                filling.data[3] = myOutput.getvalue("Hubblechi", -1.0);
-                filling.data[4] = myOutput.getvalue("6dFGSchi", -1.0);
-                filling.data[5] = myOutput.getvalue("SDSSchi", -1.0);
-                filling.data[6] = myOutput.getvalue("SDSSRchi", -1.0);
-                filling.data[7] = myOutput.getvalue("WiggleZchi", -1.0);
-                filling.data[8] = myOutput.getvalue("BOSSDR9chi", -1.0);
-                filling.data[9] = myOutput.getvalue("BOSSDR11chi", -1.0);
-                filling.data[10] = myOutput.getvalue("combinationchi", -1.0);
+                filling.data[0] = myOutput.getvalue("WMAPchi", 0.0);
+                filling.data[1] = myOutput.getvalue("PLANCKchi", 0.0);
+                filling.data[2] = myOutput.getvalue("SNchi", 0.0);
+                filling.data[3] = myOutput.getvalue("Hubblechi", 0.0);
+                filling.data[4] = myOutput.getvalue("BAOtotalchi", 0.0);
+                filling.data[5] = myOutput.getvalue("BAOtotalrchi", 0.0);
+                filling.data[6] = myOutput.getvalue("combinationchi", 0.0);
                 // Plop that on the stack too!
                 chisquareds.push_back(filling);
 
@@ -255,12 +251,12 @@ int main(int argc, char* argv[]) {
     // Print the heading
     outputstream << scientific << setprecision(8) << "# " << param1;
     if (numparams == 2) outputstream << "\t" << param2;
-    outputstream << "\tWMAP\tPLANCK\tSN\tHubble\t6dFGS\tSDSS\tSDSSR\tWiggleZ\tBOSSDR9\tBOSSDR11\tCombined" << endl;
+    outputstream << "\tWMAP\tPLANCK\tSN\tHubble\BAO (SDSS)\tBAO (SDSSR)\tCombined" << endl;
     // Loop over all results, printing them too
     for (int i = 0; i < totnumsteps; i++) {
         outputstream << parameter1[i];
         if (numparams == 2) outputstream << "\t" << parameter2[i];
-        for (int j = 0; j < 11; j++)
+        for (int j = 0; j < 7; j++)
             outputstream << "\t" << likelihoods[i].data[j];
         outputstream << endl;
     }
