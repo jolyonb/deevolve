@@ -35,6 +35,10 @@ struct MarkovChain{
 	ofstream chainfile;
 };
 
+string Int2String(int Number) {
+    return static_cast<ostringstream*>( &(ostringstream() << Number) )->str();
+}
+
 
 double ComputeLikelihood(vector<double> params, vector<DATA> &data);
 vector<double> GetProposedParameters(  vector<PARAMP> priors, vector<double> current, double L_current);
@@ -139,7 +143,7 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> priors){
 		parameters.push_back(priors[param].lower + UnitRand() * (priors[param].upper - priors[param].lower));
 	
 	// Open up file to dump chain info
-	MCMC.chainfile.open( runparams.chaindir + runparams.chainfileprefix + "_" + to_string(runparams.chainID) + ".dat");
+	MCMC.chainfile.open( runparams.chaindir + runparams.chainfileprefix + "_" + Int2String(runparams.chainID) + ".dat");
 	
 	
 	while( MCMC.run ){

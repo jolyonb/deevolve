@@ -1,10 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+#include <string>
 #include <sstream>
 #include <vector>
 #include <cmath>
-#include <boost/math/distributions/normal.hpp>
 using namespace std;
 
 #define _USE_MATH_DEFINES
