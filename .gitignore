@@ -25,3 +25,7 @@ intDE/plots/
 intDE/debug/.deps/
 
 *.gin
+
+# MCMC chains
+mcmcdev/chains/
+
