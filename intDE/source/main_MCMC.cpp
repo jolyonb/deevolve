@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
 	}
 	// Report to screen
 	int totnumsteps = 1;
-	for(int n = 0; n < iparams.size(); n++){
+	for(int n = 0; n < (int) iparams.size(); n++){
 		cout << "Sweeping over ";
 		cout << iparams[n].name << " from " << iparams[n].lower << " to  ";
 		cout << iparams[n].upper << ", with step-size " << iparams[n].stepsize ;
