@@ -12,7 +12,6 @@ using namespace std;
 
 #define PI M_PI
 
-
 double NormalDist(double x, double mu, double sigma){
 	
 	return exp(-0.5*pow(x-mu,2)*pow(sigma,-2))*pow(2*PI,-0.5)/sigma;
@@ -48,7 +47,9 @@ double min(double x1, double x2){
 }
 
 double BoxMuller(){
+	
 	return sqrt( - 2 * log10( UnitRand() ) ) * cos(2 * PI * UnitRand());
+	
 }
 
 double max(double x1, double x2){
@@ -59,5 +60,7 @@ double max(double x1, double x2){
 }
 
 string Int2String(int Number) {
+	
     return static_cast<ostringstream*>( &(ostringstream() << Number) )->str();
+	
 }

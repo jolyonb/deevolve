@@ -13,6 +13,7 @@ struct PARAMP{
 	string name;
 	double lower;
 	double upper;
+	double sigma;
 };
 
 struct RPS{
@@ -20,24 +21,23 @@ struct RPS{
 	string chaindir;
 	string chainfileprefix;
 	int numMCMCsteps;
-	double burninfrac;
+	int burninsteps;
 	int numchains;
 };
 
 struct MarkovChain{
-	bool run;
 	bool accept;
 	int step;
 	int numsteps;
 	int accept_counter;
 	int burnintime;
-	double burninfrac;
+	int burninsteps;
 	ofstream chainfile;
 };
 
 
-double ComputeLikelihood(vector<double> params, vector<DATA> &data);
-vector<double> GetProposedParameters(  vector<PARAMP> priors, vector<double> current, double L_current);
+double ComputeLikelihood(double *params, vector<DATA> &data);
+void GetProposedParameters(double *priors, double *current, double *proposed, int numparams);
 void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> priors);
 
 int main(){
@@ -46,15 +46,15 @@ int main(){
 	RPS runparams;
 	
 	// How many MCMC chains do we want?
-	runparams.numchains = 2;
+	runparams.numchains = 5;
 	// Output directory of the chains
 	runparams.chaindir = "chains/";
 	// File name-prefix of this chain
 	runparams.chainfileprefix = "chain";
 	// Number of steps to run MCMC for
 	runparams.numMCMCsteps = 40000;
-	// Fraction of total steps which are to be burnt
-	runparams.burninfrac = 0.1;
+	// Number of steps which are to be burnt
+	runparams.burninsteps = 100;
 	
 	// File name of the test data file
 	string datafile = "testdata.dat";
@@ -85,14 +85,17 @@ int main(){
 	if(gps){
 		while(!gps.eof()){
 			PARAMP temp;
-			gps >> temp.name >> temp.lower >> temp.upper;
+			gps >> temp.name >> temp.lower >> temp.upper >> temp.sigma;
 			priors.push_back(temp);
 		}
 		gps.close();
 	}
 	cout << "The priors are" << endl;
 	for(int n = 0; n < (int) priors.size(); n++)
-		cout << priors[n].name << " :: " << priors[n].lower << " " << priors[n].upper << endl;
+		cout << priors[n].name << " :: " << priors[n].lower << "\t" << priors[n].upper << "\t" << priors[n].sigma << endl;
+	
+	// Seed the random number generator
+	srand (time(NULL));
 	
 	// Run the chains!
 	for(int chain = 0; chain < runparams.numchains; chain++){
@@ -105,12 +108,10 @@ int main(){
 	
 } // END main();
 
-void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> priors){
+void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors){
 	
 	// Initialise an MCMC structure
 	MarkovChain MCMC;
-	// Make sure we start off running the MCMC
-	MCMC.run = true;
 	// Zero the MCMC step number
 	MCMC.step = 0;
 	// Zero the acceptance counter
@@ -118,171 +119,147 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> priors){
 	// Inherit the number of MCMC steps
 	MCMC.numsteps = runparams.numMCMCsteps;
 	// Inherit the fraction of MCMC steps to burn.
-	MCMC.burninfrac = runparams.burninfrac;
-	// How long should the MCMC burn-in time be?
-	MCMC.burnintime = floor( MCMC.burninfrac * MCMC.numsteps );
+	MCMC.burninsteps = runparams.burninsteps;
 
-	// Seed the random number generator
-	srand (time(NULL));
 	
 	// The likelihood variables
 	double L_current, L_proposed;
-
-	// Get the number of parameters
-	int numparams = priors.size();
+	double LikelihoodRatio;
 	
-	// Variable holding the values of the parameters
-	vector<double> parameters;
+	// Get the number of parameters
+	int numparams = spriors.size();
+	// Variable holding the values of the parameters	
+	double *parameters = new double[numparams];
+	// Create array to hold the current values of the parameters
+	double *current = new double [numparams];
+	// Create array to hold the proposed values of the parameters
+	double *proposed = new double [numparams];	
+	// Array holding prior info
+	double *priors = new double[3 * numparams];
+	// Populate prior array from input prior struct
+	for(int n = 0; n < numparams; n ++){
+		priors[n] = spriors[n].lower;
+		priors[n + numparams] = spriors[n].upper;
+		priors[n + 2 * numparams] = spriors[n].sigma;
+	}
 	
 	// Start off at a random position in parameter space
-	for(int param = 0; param < numparams; param++)
-		parameters.push_back(priors[param].lower + UnitRand() * (priors[param].upper - priors[param].lower));
+	double lower, upper;
+	for(int param = 0; param < numparams; param++){
+		lower = priors[param];
+		upper = priors[param + numparams];
+		parameters[param] = lower + UnitRand() * (upper - lower);
+	}
 	
 	// Open up file to dump chain info
 	string filename = runparams.chaindir + runparams.chainfileprefix + "_" + Int2String(runparams.chainID) + ".dat";
 	MCMC.chainfile.open(filename.c_str());
 	
 	
-	while( MCMC.run ){
-		
-		// Create vector to hold the current values of the parameters
-		vector<double> current;
+	while(true){
 		
 		// Dump the values of "parameters" into "current"
 		// NOTE: for step = 0, these are the random initial points picked
-		for(int n = 0; n < numparams; n ++)
-			current.push_back(parameters[n]);
+		memcpy(current, parameters, numparams * sizeof(double));
 		
 		// Current value of the likelihood function
 		L_current = ComputeLikelihood(current, data);
 		
 		// Get some proposed parameters
-		vector<double> proposed = GetProposedParameters(priors, current, L_current);
+		GetProposedParameters(priors, current, proposed, numparams);
 		
 		// Get the value of the likelihood with these proposed parameters		
 		L_proposed = ComputeLikelihood(proposed, data);
+			
+		// Compute likelihood ratio	
+		LikelihoodRatio = L_proposed / L_current;
 		
-		// Check to see if the current step number is within the burn-in time
-		if(MCMC.step > MCMC.burnintime){
-			
-			double LikelihoodRatio = L_proposed / L_current;
-			
-			// Decide whether to accept the proposed parameters.
-			// (1) if the proposed likelihood is larger than current,
-			// we accept.
-			if( L_proposed >= L_current )
-				MCMC.accept = true;
-			// However, we also randomly accept according to a 
-			// probability:
-			else{
-				double ran = UnitRand();
-				if( ran < LikelihoodRatio ){
-					MCMC.accept = true;
-				}
-				else
-					MCMC.accept = false;
-			}
-			// If we are accepting the proposed values, set the current values
-			// to be the proposed ones.
-			if(MCMC.accept){
-				// Increment acceptance counter
-				MCMC.accept_counter++;
-				for(int n = 0; n < numparams; n++)
-					parameters[n] = proposed[n];
-			}
-			else{
-				for(int n = 0; n < numparams; n++)
-					parameters[n] = current[n];
-			}
-
+		// Decide whether to accept the proposed parameters.
+		if( L_proposed >= L_current || UnitRand() < LikelihoodRatio ){
+			// Increment acceptance counter
+			MCMC.accept_counter++;
+			// Store proposed parameters
+			memcpy(parameters, proposed, numparams*sizeof(double));
+		}
+		
+		// Dump to file after burn-in
+		if(MCMC.step > MCMC.burninsteps){
+			for(int n = 0; n < numparams; n++)
+				MCMC.chainfile << parameters[n] << "\t";
+			MCMC.chainfile << " " << L_current << endl;
 		}
 		else{
-			// Whilst inside the burn-in time, always update   
-			// current values with proposed ones.
-			for(int n = 0; n < numparams; n++)
-				parameters[n] = proposed[n];
+			MCMC.accept_counter = 0;
 		}
 		
-		
-		// Dump info to file
-		for(int n = 0; n < numparams; n++)
-			MCMC.chainfile << parameters[n] << " ";
-		MCMC.chainfile << " " << L_current << endl;
-		
 		// Kill MCMC if exceed step number
-		if(MCMC.step > MCMC.numsteps) MCMC.run = false;
-		MCMC.step ++;				
+		if(MCMC.step > MCMC.numsteps) break;
+		MCMC.step ++;	
+					
 	}
 	
 	MCMC.chainfile.close();
 		
 	cout << "MCMC_accept_counter = " << MCMC.accept_counter << endl;
 	
+	delete parameters;
+	delete current;
+	delete proposed;
+	delete priors;
+	
 } // END runchain()
 
-double ComputeLikelihood(vector<double> params, vector<DATA> &data){
+double ComputeLikelihood(double *params, vector<DATA> &data){
 	
 	double test_m = params[0];
 	double test_c = params[1];
 	double var = 0.0;
-	
+	double datax, datay, testy, diff;
 	for(int n = 0; n < (int) data.size(); n++ ){
-		double datax = data[n].x;
-		double datay = data[n].y;		
-		double testy = test_m * datax + test_c;
-		double diff = datay - testy;
+		datax = data[n].x;
+		datay = data[n].y;		
+		testy = test_m * datax + test_c;
+		diff = datay - testy;
 		var += diff * diff;
 	}
-	var /= data.size();
 	
 	return exp(- 0.5 * var );
 	
 }// END ComputeLikelihood()
 
-
-
-vector<double> GetProposedParameters(vector<PARAMP> priors, vector<double> current, double L_current){
+void GetProposedParameters(double *priors, double *current, double *proposed, int numparams){
 	
-	// This is the vector which is to be returned,
-	// contains the "successful" proposed parameters (i.e. are inside prior ranges)
-	vector<double> proposed;
-	
+	// Get the upper and lower bounds, and sigma on the prior for this parameter
+	double upper, lower, sigma;
+	// Get the size of the parameter window allowed by the priors
+	double paramwindowsize;
+	// temporary holding variable of the proposed parameter value
+	double prop;
+	// temporary holding variable of the current parameter value
+	double thisval;
 	// Loop over all parameters
-	for(int param = 0; param < (int) priors.size(); param++){
+	for(int param = 0; param <  numparams; param++){
 		
-		// temporary holding variable of the current parameter value
-		double thisval = current[param];
-		// temporary holding variable of the proposed parameter value
-		double prop;
-		// Get the upper and lower bounds on the prior for this parameter
-		double upper = priors[param].upper;
-		double lower = priors[param].lower;
-		
-		// Get the size of the parameter window allowed by the priors
-		double paramwindowsize = upper - lower;
-		
-		// We will need to keep going untill "GetParamSuccess = true"
-		bool GetParamSuccess = false;
-		
+		thisval = current[param];
+		lower = priors[param];
+		upper = priors[param + numparams];
+		sigma = priors[param + 2 * numparams];
+		paramwindowsize = upper - lower;
+
 		// This process may choose parameter values which live outside the prior range,
-		// and so must repeat until a parameter is found which is inside
-		// prior range.
-		while( !GetParamSuccess ){
+		// and so must repeat until a parameter is found which is inside prior range.
+		while( true ){
 			
 			// Use Box-Muller transform to get N(0,1) -- Normally distributed number.
-			prop = thisval + BoxMuller() * min( 1.0 / L_current, paramwindowsize);
+			prop = thisval + BoxMuller() * sigma;
+			
 			// If the proposed parameter is outside the prior range,
 			// we need to do this process again.
-			if(prop > upper || prop < lower) 
-				GetParamSuccess = false;	
-			else
-				GetParamSuccess = true;		
+			if(prop < upper && prop > lower) break;	
+			
 		}
 		// Dump the sucessful proposed parameter into the vector to be returned.
-		proposed.push_back(prop);
+		proposed[param] = prop;
 	}
-	
-	// Return the vector containing the proposed parameters back
-	return proposed;
 	
 } // END GetProposedParameters()
