@@ -83,7 +83,6 @@ int main(int argc, char* argv[]) {
     if (!myOutput.filesready()) {
         // End gracefully if not
         cout << "Unable to open file for output." << endl;
-        delete myOutput;
         return -1;
     }
 

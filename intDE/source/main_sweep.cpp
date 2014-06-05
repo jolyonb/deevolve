@@ -208,7 +208,6 @@ int main(int argc, char* argv[]) {
     // Clear the progressbar
     if (showprogress) std::cout << std::endl;
 
-
     //****************//
     // Postprocessing //
     //****************//
@@ -220,22 +219,22 @@ int main(int argc, char* argv[]) {
     vector<expresults> likelihoods;
     totnumsteps = chisquareds.size(); // Just in case some evolution failed and the actual number is less than we expected
     likelihoods.reserve(totnumsteps);
-
+	int numchisqds = 7;
     // Iterate over everything, calculating the likelihood L = e^{-chi2/2}
     for (int i = 0; i < totnumsteps; i++) {
         filling = chisquareds[i];
-        for (int j = 0; j < 11; j++) {
+        for (int j = 0; j < numchisqds; j++) {
             filling.data[j] = exp(- 0.5 * filling.data[j]);
         }
         likelihoods.push_back(filling);
     }
 
     // Find the highest likelihood values, so that we can normalize using them
-    for (int j = 0; j < 11; j++) {
+    for (int j = 0; j < numchisqds; j++) {
         filling.data[j] = 0;
     }
     for (int i = 0; i < totnumsteps; i++) {
-        for (int j = 0; j < 11; j++) {
+        for (int j = 0; j < numchisqds; j++) {
             if (likelihoods[i].data[j] > filling.data[j])
                 filling.data[j] = likelihoods[i].data[j];
         }
@@ -243,7 +242,7 @@ int main(int argc, char* argv[]) {
 
     // Normalize the likelihoods
     for (int i = 0; i < totnumsteps; i++)
-        for (int j = 0; j < 11; j++)
+        for (int j = 0; j < numchisqds; j++)
             likelihoods[i].data[j] /= filling.data[j];
 
     // Output the likelihood data to file!
@@ -251,10 +250,17 @@ int main(int argc, char* argv[]) {
     // Print the heading
     outputstream << scientific << setprecision(8) << "# " << param1;
     if (numparams == 2) outputstream << "\t" << param2;
-    outputstream << "\tWMAP\tPLANCK\tSN\tHubble\BAO (SDSS)\tBAO (SDSSR)\tCombined" << endl;
+    outputstream << "\tWMAP\tPLANCK\tSN\tHubble\tBAO (SDSS)\tBAO (SDSSR)\tCombined" << endl;
     // Loop over all results, printing them too
     for (int i = 0; i < totnumsteps; i++) {
+		// Print new line everytime parameter2 increments
+		// - simply for plotting!
+		if( i != 0 )
+			if( parameter2[i] != parameter2[i-1] ) 
+				outputstream << endl;
+		
         outputstream << parameter1[i];
+		
         if (numparams == 2) outputstream << "\t" << parameter2[i];
         for (int j = 0; j < 7; j++)
             outputstream << "\t" << likelihoods[i].data[j];

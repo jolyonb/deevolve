@@ -25,7 +25,7 @@ main: $(OBJECTS) $(OBJECTMAIN)
 main_sweep: $(OBJECTS) $(OBJECTSWEEP)
 	$(CC) $(OBJECTS) $(OBJECTSWEEP) $(LIBS) -o ../$@
 
-main_sweep: $(OBJECTS) $(OBJECTMCMC)
+main_MCMC: $(OBJECTS) $(OBJECTMCMC)
 	$(CC) $(OBJECTS) $(OBJECTMCMC) $(LIBS) -o ../$@
 
 clean:
