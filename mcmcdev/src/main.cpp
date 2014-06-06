@@ -54,7 +54,7 @@ int main(){
 	// Number of steps to run MCMC for
 	runparams.numMCMCsteps = 40000;
 	// Number of steps which are to be burnt
-	runparams.burninsteps = 100;
+	runparams.burninsteps = 1000;
 	
 	// File name of the test data file
 	string datafile = "testdata.dat";
@@ -102,6 +102,8 @@ int main(){
 		runparams.chainID = 1E4 + chain;
 		runchain(runparams, data, priors);
 	}
+	
+	
 	
 	cout << "Done" << endl;
 		
