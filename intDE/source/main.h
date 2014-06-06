@@ -18,12 +18,21 @@
 #include "print2memory.h"
 #include "evolve.h"
 
+#include <ostream>
+#include <string>
+#include <cmath>
+#include <iomanip>
+#include <stdlib.h>
+#include <string.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <boost/filesystem.hpp>
 #include <boost/timer/timer.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
+#include <boost/random/normal_distribution.hpp>
 
 // Function that finds an appropriate filename (padding is number of characters in the number)
 std::string getfilename(const std::string &dir, const std::string &filebase, const std::string &postbase, const int padding = 4, bool dopostprocess = false) {

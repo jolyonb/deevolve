@@ -3,14 +3,12 @@
  *
  * This is the program entry point for the program.
  *
- * It acts as a wrapper around the evolution routines. All that this wrapper does is to set
- * up the appropriate input and output objects.
+ * The purpose of this software is to evolve scalar field dark energy models through cosmological time.
  *
- * The purpose of this software is to evolve scalar field models through cosmological time.
+ * This wrapper performs a sweep of evolutions across one or two parameters, as specified in the ini file.
+ * It outputs likelihood information on each parameter combination.
  *
- * This software requires the GSL libraries.
- *
- * This software requires the C++ BOOST libraries (see www.boost.org)
+ * This software requires the GSL libraries and the C++ BOOST libraries (see www.boost.org)
  * These are most easily installed using a package manager (libboost-all-dev on ubuntu)
  *
  * Jolyon K. Bloomfield and Jonathan A. Pearson, March 2014
@@ -86,7 +84,8 @@ int main(int argc, char* argv[]) {
     Print2Memory myOutput;
 
     // Check that output is a go
-    if (!myOutput.filesready()) {
+    std::ofstream outputstream(outputname.c_str());
+    if (!outputstream.is_open()) {
         // End gracefully if not
         cout << "Unable to open file for output." << endl;
         return -1;
@@ -247,7 +246,6 @@ int main(int argc, char* argv[]) {
             likelihoods[i].data[j] /= filling.data[j];
 
     // Output the likelihood data to file!
-    std::ofstream outputstream(outputname.c_str());
     // Print the heading
     outputstream << scientific << setprecision(8) << "# " << param1;
     if (numparams == 2) outputstream << "\t" << param2;
@@ -283,5 +281,5 @@ int main(int argc, char* argv[]) {
     cout << endl;
 
 	// Exit gracefully
-	return result;
+	return 0;
 }
