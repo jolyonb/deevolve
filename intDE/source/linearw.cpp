@@ -36,11 +36,29 @@ int LinearW::derivatives(const double data[], double derivs[], Parameters &param
 
 // Returns the ratio rho_Q/rho_0
 double LinearW::energydensity(const double data[]){
+    // First, check the data against the previous data
+    // This prevents the results being computed multiple times on the same data
+    if (data[0] == storeddata[0] &&
+            data[1] == storeddata[1] &&
+            data[2] == storeddata[2] &&
+            data[3] == storeddata[3]) {
+        // It's the same as before, so don't recompute it
+        return menergydensity;
+    }
+
 	// Extract data for easier reading of the code
 	double a = data[0];
 
 	// The formula for energy density is rho = rho_0 a^(-3(1 + w0 + wa)) e^(3 wa (a - 1))
-	return pow(a, - 3.0 * (1.0 + w0 + wa)) * exp(3 * wa * (a - 1)) * OmegaLambdah2;
+	// menergydensity = pow(a, - 3.0 * (1.0 + w0 + wa)) * exp(3 * wa * (a - 1)) * OmegaLambdah2;
+    menergydensity = exp(3 * wa * (a - 1) - 3.0 * (1.0 + w0 + wa) * log(a)) * OmegaLambdah2;
+
+    // Store the data for which these results are correct
+    for (int i = 0; i < 4; i++)
+        storeddata[i] = data[i];
+
+    // Return the value
+    return menergydensity;
 }
 // Returns the ratio P_Q/rho_0
 double LinearW::pressure(const double data[], const double hdot){
@@ -81,6 +99,9 @@ int LinearW::init(double data[], double time, Parameters &params, IniReader &ini
 	// Also extract w0 and wa from the ini file
 	w0 = init.getiniDouble("wnaught", -1.0, section);
 	wa = init.getiniDouble("wa", 0.0, section);
+
+    // Set the computelagrangian data to uninitialized
+    for (int i = 0; i < 4; i++) storeddata[i] = -1;
 
 	// Construct H
 	// Temporary variable
