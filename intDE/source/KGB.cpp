@@ -40,7 +40,7 @@ int KGB::derivatives(const double data[], double derivs[], Parameters &params) {
 	// P1 & P2 are computed in the "computelagrangian" call
 
 	// Split up the acceleration equation: H1 is all the "standard" contributions
-	double H1 = - 0.5 * pow(hubble, 2.0) - 0.5 * params.rhoR() / a2 + 0.5 * params.rhoK();
+	double H1 = - 0.5 * hubble * hubble - 0.5 * params.rhoR() / a2 + 0.5 * params.rhoK();
 	// put it all together and compute \dot{H}
 	derivs[3]=(H1-1.5*a2*(P1+P2*(NV+NL3_1)/D)) / (1.0+1.5*a2*P2*NL3_2/D);
 
@@ -72,10 +72,11 @@ int KGB::computelagrangian(const double data[]) {
 	// Extract data for easier reading of the code
 	double phi = data[1];
 	// Compute the X quantity
-	X = pow(data[2] / data[0], 2.0) / 2.0;
+	double temp = data[2] / data[0];
+	X = temp * temp / 2.0;
 	
 	// Compute powers of a:
-	a2 = pow(data[0],2.0);
+	a2 = data[0] * data[0];
 	a4 = a2 * a2;
 	a8 = a4 * a4;
 
@@ -132,7 +133,7 @@ int KGB::commonterms(const double data[]){
 	// Numerator for the "V"-part
 	NV = a8*(a2*Vp+hubble*(VXX*phidot3/a2-2.0*VX*phidot)-VXp*phidot2); 
 	NL3_1 = a4*(4.0*a4*hubble*phidot*L3p
-		+3.0*pow(hubble,2.0)*phidot4*L3XX*a4*phidot2*L3pp-4.0*a2*hubble*phidot3*L3X);
+		+3.0*hubble*hubble*phidot4*L3XX*a4*phidot2*L3pp-4.0*a2*hubble*phidot3*L3X);
 	NL3_2 = -a4*3.0*a2*phidot2*L3X;
 	
 	// DENOMINATOR
@@ -150,7 +151,7 @@ int KGB::commonterms(const double data[]){
 	
 	// denominator in the sound speed
 	// Also computed to check stability.
-	cs2denom=a2*(-2.0*L3p+VX+2.0*X*(VXX-L3Xp)+6.0*pow(X*L3X,2.0));
+	cs2denom=a2*(-2.0*L3p+VX+2.0*X*(VXX-L3Xp)+6.0*X*X*L3X*L3X);
 	cs2denom+=6.0*hubble*(L3X+X*L3XX)*phidot;
 	
 	return 0;
@@ -164,7 +165,7 @@ double KGB::energydensity(const double data[]){
 	double phi = data[1];
 	double phidot = data[2];
 	double hubble = data[3];
-	double a2 = pow(a,2.0);
+	double a2 = a * a;
 	
 	// Compute quantities
 	int result = computelagrangian(data);
@@ -221,7 +222,7 @@ int KGB::init(double data[], double time, Parameters &params, IniReader &init, O
 	double temp;
 	// Scale factor
 	double a = data[0];
-	double a2 = pow(a, 2.0);
+	double a2 = a * a;
 
 	// Calculate H^2
 	
@@ -229,7 +230,7 @@ int KGB::init(double data[], double time, Parameters &params, IniReader &init, O
 	temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
-	data[3] = pow(temp, 0.5);
+	data[3] = sqrt(temp);
 
     // Print stuff to the log
     output.printlog("Running KGB model.");
@@ -254,7 +255,7 @@ double KGB::speedofsound2(const double data[]) {
 	int result = computelagrangian(data);
 
 	// Compute numerator of cs2
-	double cs2numer = a2*(-2.0*L3p+VX+2.0*L3Xp*X-2.0*pow(X*L3X,2.0));
+	double cs2numer = a2*(-2.0*L3p+VX+2.0*L3Xp*X-2.0*X*X*L3X*L3X);
 	cs2numer+= 2.0*hubble*(L3X-X*L3XX)*phidot;
 	
 	// NOTE: this cs2 needs \ddot{\phi}

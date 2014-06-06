@@ -8,7 +8,7 @@ int LinearW::derivatives(const double data[], double derivs[], Parameters &param
 
 	// Extract data for easier reading of the code
 	double a = data[0];
-	double a2 = pow(a, 2.0);   // a^2
+	double a2 = a * a;   // a^2
 	double phi = data[1];
 	double phidot = data[2];
 	double hubble = data[3];
@@ -28,7 +28,7 @@ int LinearW::derivatives(const double data[], double derivs[], Parameters &param
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);
-    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - pow(hubble, 2.0) + params.rhoK());
+    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - hubble * hubble + params.rhoK());
 
 	// GSL_SUCCESS indicates that the computation was successful. If it failed, look up the appropriate error code in the same enum as GSL_SUCCESS
 	return GSL_SUCCESS;
@@ -87,13 +87,13 @@ int LinearW::init(double data[], double time, Parameters &params, IniReader &ini
 	double temp;
 	// Scale factor
 	double a = data[0];
-	double a2 = pow(a, 2.0);
+	double a2 = a * a;
 
 	// Calculate H^2
     temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
-	data[3] = pow(temp, 0.5);
+	data[3] = sqrt(temp);
 
 	// Discard phi, \dot{\phi}
 	data[1] = 0;
