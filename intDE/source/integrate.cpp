@@ -15,8 +15,9 @@ Integrator::Integrator() {
 	control = gsl_odeiv2_control_yp_new(0, 1.0e-8); // absolute error, relative error
 	evolve = gsl_odeiv2_evolve_alloc(numelements);
 
-	// Set the initial stepsize to be quite small, in order to get good data on derivatives at the beginning
+    // Set the initial stepsize to be quite small, in order to get good data on derivatives at the beginning
 	stepsize = minstepsize();
+
 }
 
 Integrator::~Integrator() {

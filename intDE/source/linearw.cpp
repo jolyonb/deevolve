@@ -8,7 +8,7 @@ int LinearW::derivatives(const double data[], double derivs[], Parameters &param
 
 	// Extract data for easier reading of the code
 	double a = data[0];
-	double a2 = pow(a, 2.0);   // a^2
+	double a2 = a * a;   // a^2
 	double phi = data[1];
 	double phidot = data[2];
 	double hubble = data[3];
@@ -28,7 +28,7 @@ int LinearW::derivatives(const double data[], double derivs[], Parameters &param
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);
-    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - pow(hubble, 2.0) + params.rhoK());
+    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - hubble * hubble + params.rhoK());
 
 	// GSL_SUCCESS indicates that the computation was successful. If it failed, look up the appropriate error code in the same enum as GSL_SUCCESS
 	return GSL_SUCCESS;
@@ -36,11 +36,29 @@ int LinearW::derivatives(const double data[], double derivs[], Parameters &param
 
 // Returns the ratio rho_Q/rho_0
 double LinearW::energydensity(const double data[]){
+    // First, check the data against the previous data
+    // This prevents the results being computed multiple times on the same data
+    if (data[0] == storeddata[0] &&
+            data[1] == storeddata[1] &&
+            data[2] == storeddata[2] &&
+            data[3] == storeddata[3]) {
+        // It's the same as before, so don't recompute it
+        return menergydensity;
+    }
+
 	// Extract data for easier reading of the code
 	double a = data[0];
 
 	// The formula for energy density is rho = rho_0 a^(-3(1 + w0 + wa)) e^(3 wa (a - 1))
-	return pow(a, - 3.0 * (1.0 + w0 + wa)) * exp(3 * wa * (a - 1)) * OmegaLambdah2;
+	// menergydensity = pow(a, - 3.0 * (1.0 + w0 + wa)) * exp(3 * wa * (a - 1)) * OmegaLambdah2;
+    menergydensity = exp(3 * wa * (a - 1) - 3.0 * (1.0 + w0 + wa) * log(a)) * OmegaLambdah2;
+
+    // Store the data for which these results are correct
+    for (int i = 0; i < 4; i++)
+        storeddata[i] = data[i];
+
+    // Return the value
+    return menergydensity;
 }
 // Returns the ratio P_Q/rho_0
 double LinearW::pressure(const double data[], const double hdot){
@@ -82,18 +100,21 @@ int LinearW::init(double data[], double time, Parameters &params, IniReader &ini
 	w0 = init.getiniDouble("wnaught", -1.0, section);
 	wa = init.getiniDouble("wa", 0.0, section);
 
+    // Set the computelagrangian data to uninitialized
+    for (int i = 0; i < 4; i++) storeddata[i] = -1;
+
 	// Construct H
 	// Temporary variable
 	double temp;
 	// Scale factor
 	double a = data[0];
-	double a2 = pow(a, 2.0);
+	double a2 = a * a;
 
 	// Calculate H^2
     temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
-	data[3] = pow(temp, 0.5);
+	data[3] = sqrt(temp);
 
 	// Discard phi, \dot{\phi}
 	data[1] = 0;

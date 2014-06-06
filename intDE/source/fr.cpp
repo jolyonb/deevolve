@@ -8,7 +8,7 @@ int Fr::derivatives(const double data[], double derivs[], Parameters &params) {
 
     // Extract data for easier reading of the code
     double a = data[0];
-    double a2 = pow(a, 2.0);   // a^2
+    double a2 = a * a;
     double phi = data[1];
     double phidot = data[2];
     double hubble = data[3];
@@ -85,7 +85,7 @@ int Fr::init(double data[], double time, Parameters &params, IniReader &init, Ou
     double temp;
     // Scale factor
     double a = data[0];
-    double a2 = pow(a, 2.0);
+    double a2 = a * a;
     // Scalar field
     double phi = data[1];
     double phidot = data[2];

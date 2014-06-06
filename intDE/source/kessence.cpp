@@ -39,7 +39,7 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);
-    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - pow(hubble, 2.0) + params.rhoK());
+    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - hubble * hubble + params.rhoK());
 
 	// GSL_SUCCESS indicates that the computation was successful.
 	// If it failed, look up the appropriate error code in the same enum as GSL_SUCCESS
@@ -63,7 +63,8 @@ int Kessence::computelagrangian(const double data[]) {
 	// Extract data for easier reading of the code
 	double phi = data[1];
 	// Compute the X quantity
-	X = pow(data[2] / data[0], 2.0) / 2.0;
+	double temp = data[2] / data[0];
+	X = temp * temp / 2.0;
 
 	// Calculate everything
 	// Below is a different choice of Lagrangian
@@ -155,13 +156,13 @@ int Kessence::init(double data[], double time, Parameters &params, IniReader &in
 	double temp;
 	// Scale factor
 	double a = data[0];
-	double a2 = pow(a, 2.0);
+	double a2 = a * a;
 
 	// Calculate H^2
 	temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
-	data[3] = pow(temp, 0.5);
+	data[3] = sqrt(temp);
 
 	// Print stuff to the log
 	output.printlog("Running Kessence model.");

@@ -28,6 +28,7 @@ class Integrator {
 
 		// Just a setter and getter for stepsize
 		inline double getstepsize() const { return stepsize; }
+
 		void setstepsize(const double newsize) {
 			// Do some simple error checking
 			if (newsize <= 0)

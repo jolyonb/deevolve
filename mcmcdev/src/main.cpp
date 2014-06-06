@@ -1,4 +1,3 @@
-
 #include "main.h"
 
 struct DATA{
@@ -26,15 +25,12 @@ struct RPS{
 };
 
 struct MarkovChain{
-	bool accept;
 	int step;
 	int numsteps;
 	int accept_counter;
-	int burnintime;
 	int burninsteps;
 	ofstream chainfile;
 };
-
 
 double ComputeLikelihood(double *params, vector<DATA> &data);
 void GetProposedParameters(double *priors, double *current, double *proposed, int numparams);
@@ -95,7 +91,10 @@ int main(){
 		cout << priors[n].name << " :: " << priors[n].lower << "\t" << priors[n].upper << "\t" << priors[n].sigma << endl;
 	
 	// Seed the random number generator
-	srand (time(NULL));
+	// srand (time(NULL));
+	RNGtool.seed(time(NULL));
+	// Note: if you're running multiple chains in separate processes starting around the same time, make sure to seed them using
+	// different seeds!
 	
 	// Run the chains!
 	for(int chain = 0; chain < runparams.numchains; chain++){
@@ -106,7 +105,8 @@ int main(){
 	
 	
 	cout << "Done" << endl;
-		
+
+	return 0;
 	
 } // END main();
 
@@ -139,7 +139,7 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 	// Array holding prior info
 	double *priors = new double[3 * numparams];
 	// Populate prior array from input prior struct
-	for(int n = 0; n < numparams; n ++){
+	for(int n = 0; n < numparams; n++){
 		priors[n] = spriors[n].lower;
 		priors[n + numparams] = spriors[n].upper;
 		priors[n + 2 * numparams] = spriors[n].sigma;
@@ -157,7 +157,8 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 	string filename = runparams.chaindir + runparams.chainfileprefix + "_" + Int2String(runparams.chainID) + ".dat";
 	MCMC.chainfile.open(filename.c_str());
 	
-	
+
+	// Start the sampling
 	while(true){
 		
 		// Dump the values of "parameters" into "current"
@@ -188,21 +189,25 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 		if(MCMC.step > MCMC.burninsteps){
 			for(int n = 0; n < numparams; n++)
 				MCMC.chainfile << parameters[n] << "\t";
-			MCMC.chainfile << " " << L_current << endl;
+			MCMC.chainfile << "\t" << L_current << endl;
 		}
 		else{
+		    // Only start the acceptance counter after the burn-in period has ended
 			MCMC.accept_counter = 0;
 		}
 		
-		// Kill MCMC if exceed step number
-		if(MCMC.step > MCMC.numsteps) break;
-		MCMC.step ++;	
-					
+		// Say we've taken one more step
+		MCMC.step++;
+		// Halt if we've taken enough steps
+		if(MCMC.step >= MCMC.numsteps) break;
 	}
-	
+
+	// Write final counts
+	MCMC.chainfile << "# Number of samples (after burn-in): " << MCMC.step - MCMC.burninsteps
+	               << ", Number of acceptances: " << MCMC.accept_counter << endl;
 	MCMC.chainfile.close();
-		
-	cout << "MCMC_accept_counter = " << MCMC.accept_counter << endl;
+
+	cout << setprecision(4) << "Acceptance rate = " << 100 * MCMC.accept_counter / (float) (MCMC.step - MCMC.burninsteps) << "%" << endl;
 	
 	delete parameters;
 	delete current;
@@ -216,12 +221,10 @@ double ComputeLikelihood(double *params, vector<DATA> &data){
 	double test_m = params[0];
 	double test_c = params[1];
 	double var = 0.0;
-	double datax, datay, testy, diff;
+	double testy, diff;
 	for(int n = 0; n < (int) data.size(); n++ ){
-		datax = data[n].x;
-		datay = data[n].y;		
-		testy = test_m * datax + test_c;
-		diff = datay - testy;
+		testy = test_m * data[n].x + test_c;
+		diff = data[n].y - testy;
 		var += diff * diff;
 	}
 	
@@ -233,8 +236,6 @@ void GetProposedParameters(double *priors, double *current, double *proposed, in
 	
 	// Get the upper and lower bounds, and sigma on the prior for this parameter
 	double upper, lower, sigma;
-	// Get the size of the parameter window allowed by the priors
-	double paramwindowsize;
 	// temporary holding variable of the proposed parameter value
 	double prop;
 	// temporary holding variable of the current parameter value
@@ -246,7 +247,6 @@ void GetProposedParameters(double *priors, double *current, double *proposed, in
 		lower = priors[param];
 		upper = priors[param + numparams];
 		sigma = priors[param + 2 * numparams];
-		paramwindowsize = upper - lower;
 
 		// This process may choose parameter values which live outside the prior range,
 		// and so must repeat until a parameter is found which is inside prior range.
@@ -255,12 +255,11 @@ void GetProposedParameters(double *priors, double *current, double *proposed, in
 			// Use Box-Muller transform to get N(0,1) -- Normally distributed number.
 			prop = thisval + BoxMuller() * sigma;
 			
-			// If the proposed parameter is outside the prior range,
-			// we need to do this process again.
-			if(prop < upper && prop > lower) break;	
+			// Make sure the proposal is inside the prior range before getting out
+			if(prop <= upper && prop >= lower) break;
 			
 		}
-		// Dump the sucessful proposed parameter into the vector to be returned.
+		// Place the new proposal into the array
 		proposed[param] = prop;
 	}
 	

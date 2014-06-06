@@ -5,6 +5,7 @@
 intDE/main
 intDE/main_sweep
 intDE/main_MCMC
+mcmcdev/mcmc
 
 # Eclipse stuff
 .metadata

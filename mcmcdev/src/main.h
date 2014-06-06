@@ -5,58 +5,38 @@
 #include <sstream>
 #include <vector>
 #include <cmath>
+#include <iomanip>
+#include <stdlib.h>
+#include <string.h>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
+#include <boost/random/normal_distribution.hpp>
 
 using namespace std;
 
 #define _USE_MATH_DEFINES
+const double TwoPi = 2.0 * M_PI;
 
-#define PI M_PI
-
-double NormalDist(double x, double mu, double sigma){
-	
-	return exp(-0.5*pow(x-mu,2)*pow(sigma,-2))*pow(2*PI,-0.5)/sigma;
-	
-} // END NormalDist()
-
-double UniformDist(){
-	
-	// First, decide what sign the number has:
-	
-	double sign = rand() / (double)RAND_MAX;
-	
-	if( sign < 0.5 ) 
-		sign = 1.0;
-	else
-		sign = -1.0;
-	
-	return sign * rand() / (double)RAND_MAX;
-	
-} // END UniformInfinite()
+// Random number generation tools
+boost::random::mt19937 RNGtool;
+boost::random::uniform_real_distribution<> RNGunit(0.0, 1.0);
+boost::random::normal_distribution<> RNGnormal(0.0, 1.0);
+// Usage:
+// double x = RNGunit(RNGtool) // random real from [0,1)
+// double x = RNGnormal(RNGtool) // random real from real distribution with mean 0 and standard deviation 1
 
 double UnitRand(){
 	
-	return rand() / (double)RAND_MAX;
+	//return rand() / (double)RAND_MAX;
+    return RNGunit(RNGtool);
 	
-} // END UniformInfinite()
-
-double min(double x1, double x2){
-	if(x1 < x2) 
-		return x1;
-	else
-		return x2;
 }
 
 double BoxMuller(){
 	
-	return sqrt( - 2 * log10( UnitRand() ) ) * cos(2 * PI * UnitRand());
+	//return sqrt( - 2 * log( UnitRand() ) ) * cos(TwoPi * UnitRand());
+    return RNGnormal(RNGtool);
 	
-}
-
-double max(double x1, double x2){
-	if(x1 > x2) 
-		return x1;
-	else
-		return x2;
 }
 
 string Int2String(int Number) {

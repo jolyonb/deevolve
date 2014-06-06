@@ -176,14 +176,14 @@ int PostProcessingDist(vector<double>& hubble,
 	// The computation of DM depends on whether OmegaK is 0, positive or negative
 	if (OmegaK > 0) {
 		// k < 0
-		double rootk = pow(OmegaK, 0.5);
+		double rootk = sqrt(OmegaK);
 		for (int i = 0; i < numrows; i++) {
 			DM.push_back(DH * sinh(rootk * DC[i] / DH) / rootk);
 		}
 	}
 	else if (OmegaK < 0) {
 		// k > 0
-		double rootk = pow((-OmegaK), 0.5);
+		double rootk = sqrt(-OmegaK);
 		for (int i = 0; i < numrows; i++) {
 			DM.push_back(DH * sin(rootk * DC[i] / DH) / rootk);
 		}
@@ -266,12 +266,10 @@ int PostProcessingDist(vector<double>& hubble,
 	rs += intresult;
 	rd += intresult;
 
-	// Include the multiplicative factor of 1/sqrt(3)
-	rs *= pow(3.0, -0.5);
-	rd *= pow(3.0, -0.5);
-	// and the factor of c / H0
-	rs *= conH0;
-	rd *= conH0;
+	// Include the multiplicative factor of 1/sqrt(3) and the factor of c / H0
+	const double rootm3 = 1 / sqrt(3.0);
+	rs *= rootm3 * conH0;
+	rd *= rootm3 * conH0;
 
 	// Release the memory from the integrator
 	gsl_integration_workspace_free (workspace);
@@ -319,7 +317,7 @@ double rsintfunc(double z, void *params) {
 	double H = gsl_spline_eval (myParams.spline, z, myParams.acc);
 
 	// Calculate the derivative
-	return 1 / (1.0 + z) / H / pow(1 + myParams.param / (1.0 + z), 0.5);
+	return 1 / (1.0 + z) / H / sqrt(1 + myParams.param / (1.0 + z));
 
 }
 
@@ -334,11 +332,11 @@ double rsintfuncinf(double z, void *params) {
 
 	// Calculate H(z) based on LambdaCDM FRW evolution with radiation, matter and curvature
 	double a = 1.0 + z;
-	double H = pow(a * a * myParams.rhoR() + a * myParams.rhoM() + myParams.rhoK(), 0.5);
+	double H = sqrt(a * a * myParams.rhoR() + a * myParams.rhoM() + myParams.rhoK());
 	double alpha = 3 * myParams.rhoB() / 4 / myParams.rhoR();
 
 	// Calculate the derivative
-	return 1 / a / H / pow(1 + alpha / a, 0.5);
+	return 1 / a / H / sqrt(1.0 + alpha / a);
 
 }
 
@@ -454,7 +452,7 @@ void chi2CMB(vector<double>& redshift, vector<double>& DA, double rs, Output &ou
 	double la = (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc) * M_PI / rs;
 
 	// Calculate R
-	double R = pow(params.getOmegaM(), 0.5) * (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc) / params.getDH();
+	double R = sqrt(params.getOmegaM()) * (1.0 + zCMB) * gsl_spline_eval (DAspline.spline, zCMB, DAspline.acc) / params.getDH();
 
 	// Release the spline memory
 	gsl_spline_free (DAspline.spline);
