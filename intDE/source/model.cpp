@@ -31,14 +31,14 @@ void Model::getstate(const double data[], const double time, double info[], Para
 	double phi = data[1];
 	double phidot = data[2];
 	// Calculate a^2, a^4
-	double a2 = pow(a, 2.0);
-	double a4 = pow(a, 4.0);
+	double a2 = a * a;
+	double a4 = a2 * a2;
 	// Go and compute the derivatives
 	double derivs[4];
 	int result = derivatives(data, derivs, params);
 	// Hubble parameter H = \dot{a}/a
 	double hubble = derivs[0] / a;
-	double hubble2 = pow(hubble, 2.0);
+	double hubble2 = hubble * hubble;
 	// Energy density and pressure of dark energy
 	double energy = energydensity(data);
 	double press = pressure(data, derivs[3]);
@@ -89,6 +89,6 @@ void Model::getstate(const double data[], const double time, double info[], Para
 	   I believe this is model independent.
 	 */
 
-	info[16] = 1 - pow(info[8] + info[9] + info[10] + info[11], 0.5);
+	info[16] = 1 - sqrt(info[8] + info[9] + info[10] + info[11]);
 
 }

@@ -4,6 +4,9 @@
 // Returns the potential for a given phi (used in calculating energy density and pressure)
 double Quintessence::potential(const double phi){
 
+
+    double phi2 = phi * phi;
+
 	// The potential is selected by a parameter that is specified in params.ini
 	switch(modeltype){
 		case 1 :
@@ -11,7 +14,7 @@ double Quintessence::potential(const double phi){
 			// This is just the potential V = mass * m_P^2 H_0^2 phi^2 / 2 + lambda * m_P^2 H_0^2 phi^4
 			// (for dimensionless phi)
 			// In terms of the dimensionless potential U, this is U = mass * phi^2 / 2 + lambda * phi^4
-			return mass * pow(phi, 2.0) / 2 + lambda * pow(phi, 4.0);
+			return mass * phi2 / 2 + lambda * phi2 * phi2;
 
 		case 2 :
 			// Exponential
@@ -30,7 +33,7 @@ double Quintessence::potential(const double phi){
 			// mass term only
 			// This is just the potential V = mass * m_P^2 H_0^2 phi^2 / 2 (for dimensionless phi)
 			// In terms of the dimensionless potential U, this is U = mass * phi^2 / 2
-			return mass * pow(phi, 2.0) / 2;
+			return mass * phi2 / 2;
 	}
 
 	// It's an error if we get to here, but return something sensible
@@ -48,7 +51,7 @@ double Quintessence::potentialprime(const double phi){
 			// (for dimensionless phi)
 			// In terms of the dimensionless potential U, this is U = mass * phi^2 / 2 + lambda * phi^4
 			// The derivative is U' = mass * phi + 4 * lambda * phi^3
-			return mass * phi + 4.0 * lambda * pow(phi, 3.0);
+			return mass * phi + 4.0 * lambda * phi * phi * phi;
 
 		case 2 :
 			// Exponential
@@ -101,13 +104,13 @@ int Quintessence::init(double data[], double time, Parameters &params, IniReader
 	double temp;
 	// Scale factor
 	double a = data[0];
-	double a2 = pow(a, 2.0);
+	double a2 = a * a;
 
 	// Calculate H^2
 	temp = params.rhoM() / a + params.rhoR() / a2 + params.rhoK() + a2 * energydensity(data);
 
 	// Calculate H
-	data[3] = pow(temp, 0.5);
+	data[3] = sqrt(temp);
 
 	// Print stuff to the logs
 	switch(modeltype){
@@ -152,7 +155,7 @@ int Quintessence::derivatives(const double data[], double derivs[], Parameters &
 
 	// Extract data for easier reading of the code
 	double a = data[0];
-	double a2 = pow(a, 2.0);   // a^2
+	double a2 = a * a;   // a^2
 	double phi = data[1];
 	double phidot = data[2];
 	double hubble = data[3];
@@ -171,7 +174,7 @@ int Quintessence::derivatives(const double data[], double derivs[], Parameters &
 	// Note that pressure does not depend on \dot{H} in this model,
 	// so we pass in 0 for \dot{H} when calculating pressure
 	double press = pressure(data, 0.0);
-    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - pow(hubble, 2.0) + params.rhoK());
+    derivs[3] = 0.5 * (- params.rhoR() / a2 - 3.0 * a2 * press - hubble * hubble + params.rhoK());
 
 	return GSL_SUCCESS;
 }
@@ -185,7 +188,7 @@ double Quintessence::energydensity(const double data[]){
 	double phidot = data[2];
 	double hubble = data[3];
 
-	return (0.5 * pow(phidot / a, 2.0) + potential(phi)) / 3;
+	return (0.5 * phidot * phidot / a / a + potential(phi)) / 3;
 	// The factor of 1/3 is correct. Note that a cosmological constant will contribute
 	// 8 pi G Lambda / 3 H_0^2 = Lambda / \rho_c = Omega_Lambda.
 }
@@ -197,5 +200,5 @@ double Quintessence::pressure(const double data[], const double hdot){
 	double phidot = data[2];
 	double hubble = data[3];
 
-	return (0.5 * pow(phidot / a, 2.0) - potential(phi)) / 3;
+	return (0.5 * phidot * phidot / a / a - potential(phi)) / 3;
 }

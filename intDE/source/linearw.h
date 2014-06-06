@@ -31,6 +31,11 @@ class LinearW : public Model {
 		double w0;
 		double wa;
 
+        // Each time the stuff is calculated, store both the data and it, so as not to waste computation time
+		// Raising something to a power is expensive! (so is the exponential)
+        double storeddata[4];
+        double menergydensity;
+
 };
 
 #endif /* LINEARW_H_ */
