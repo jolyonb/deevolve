@@ -22,15 +22,9 @@ struct RPS{
 	int numMCMCsteps;
 	int burninsteps;
 	int numchains;
+	int chaindumpfreq;
 };
 
-struct MarkovChain{
-	int step;
-	int numsteps;
-	int accept_counter;
-	int burninsteps;
-	ofstream chainfile;
-};
 
 double ComputeLikelihood(double *params, vector<DATA> &data);
 void GetProposedParameters(double *priors, double *current, double *proposed, int numparams);
@@ -51,7 +45,8 @@ int main(){
 	runparams.numMCMCsteps = 40000;
 	// Number of steps which are to be burnt
 	runparams.burninsteps = 1000;
-	
+	// After how many MCMC steps should chain info be dumped to file?
+	runparams.chaindumpfreq = 10;
 	// File name of the test data file
 	string datafile = "testdata.dat";
 	// File name of priors file
@@ -102,8 +97,6 @@ int main(){
 		runchain(runparams, data, priors);
 	}
 	
-	
-	
 	cout << "Done" << endl;
 
 	return 0;
@@ -112,21 +105,20 @@ int main(){
 
 void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors){
 	
-	// Initialise an MCMC structure
-	MarkovChain MCMC;
 	// Zero the MCMC step number
-	MCMC.step = 0;
+	int MCMCstep = 0;
 	// Zero the acceptance counter
-	MCMC.accept_counter = 0;
+	int MCMCaccept_counter = 0;
 	// Inherit the number of MCMC steps
-	MCMC.numsteps = runparams.numMCMCsteps;
+	int MCMCnumsteps = runparams.numMCMCsteps;
 	// Inherit the fraction of MCMC steps to burn.
-	MCMC.burninsteps = runparams.burninsteps;
-
-	
+	int MCMCburninsteps = runparams.burninsteps;
+	// How often to keep samples?
+	int MCMCchaindumpfreq = runparams.chaindumpfreq;
+	// Output stream for chaininfo
+	ofstream MCMCchainfile;
 	// The likelihood variables
-	double L_current, L_proposed;
-	double LikelihoodRatio;
+	double L_current, L_proposed, LikelihoodRatio;
 	
 	// Get the number of parameters
 	int numparams = spriors.size();
@@ -138,6 +130,7 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 	double *proposed = new double [numparams];	
 	// Array holding prior info
 	double *priors = new double[3 * numparams];
+
 	// Populate prior array from input prior struct
 	for(int n = 0; n < numparams; n++){
 		priors[n] = spriors[n].lower;
@@ -155,9 +148,8 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 	
 	// Open up file to dump chain info
 	string filename = runparams.chaindir + runparams.chainfileprefix + "_" + Int2String(runparams.chainID) + ".dat";
-	MCMC.chainfile.open(filename.c_str());
+	MCMCchainfile.open(filename.c_str());
 	
-
 	// Start the sampling
 	while(true){
 		
@@ -180,35 +172,40 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 		// Decide whether to accept the proposed parameters.
 		if( L_proposed >= L_current || UnitRand() < LikelihoodRatio ){
 			// Increment acceptance counter
-			MCMC.accept_counter++;
+			MCMCaccept_counter++;
 			// Store proposed parameters
 			memcpy(parameters, proposed, numparams*sizeof(double));
 		}
 		
 		// Dump to file after burn-in
-		if(MCMC.step > MCMC.burninsteps){
-			for(int n = 0; n < numparams; n++)
-				MCMC.chainfile << parameters[n] << "\t";
-			MCMC.chainfile << "\t" << L_current << endl;
+		if(MCMCstep > MCMCburninsteps){
+			
+			// Only dump chain info to file every "chaindumpfreq" MCMCsteps.				
+			if(MCMCstep % MCMCchaindumpfreq == 0 ){
+				for(int n = 0; n < numparams; n++)
+					MCMCchainfile << parameters[n] << "\t";
+				MCMCchainfile << "\t" << L_current << endl;
+			}
+			
 		}
 		else{
 		    // Only start the acceptance counter after the burn-in period has ended
-			MCMC.accept_counter = 0;
+			MCMCaccept_counter = 0;
 		}
 		
 		// Say we've taken one more step
-		MCMC.step++;
+		MCMCstep++;
 		// Halt if we've taken enough steps
-		if(MCMC.step >= MCMC.numsteps) break;
+		if(MCMCstep >= MCMCnumsteps) break;
 	}
 
 	// Write final counts
-	MCMC.chainfile << "# Number of samples (after burn-in): " << MCMC.step - MCMC.burninsteps
-	               << ", Number of acceptances: " << MCMC.accept_counter << endl;
-	MCMC.chainfile.close();
+	MCMCchainfile << "# Number of samples (after burn-in): " << MCMCstep - MCMCburninsteps
+	               << ", Number of acceptances: " << MCMCaccept_counter << endl;
+	MCMCchainfile.close();
 
-	cout << setprecision(4) << "Acceptance rate = " << 100 * MCMC.accept_counter / (float) (MCMC.step - MCMC.burninsteps) << "%" << endl;
-	
+	cout << setprecision(4) << "Acceptance rate = " << 100 * MCMCaccept_counter / (float) (MCMCstep - MCMCburninsteps) << "%" << endl;
+
 	delete parameters;
 	delete current;
 	delete proposed;
