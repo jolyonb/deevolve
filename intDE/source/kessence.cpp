@@ -9,7 +9,6 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 	// Extract data for easier reading of the code
 	double a = data[0];
 	double a2 = a * a;
-	double phi = data[1];
 	double phidot = data[2];
 	double phidot2 = phidot * phidot;
 	double phidot3 = phidot * phidot2;
@@ -24,7 +23,7 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 
 	// Computing \ddot{\phi}. This requires solving the scalar equation of motion for \ddot{\phi}.
 	// Compute k-essence quantities
-	int result = computelagrangian(data);
+	computelagrangian(data);
 
 	derivs[2] = (a2 * Lp
 	                   - 2 * hubble * phidot * LX
@@ -48,7 +47,7 @@ int Kessence::derivatives(const double data[], double derivs[], Parameters &para
 
 // Function to calculate the Lagrangian and all its appropriate derivatives:
 // U, Up, Upp, UX, UXX, UXP
-int Kessence::computelagrangian(const double data[]) {
+void Kessence::computelagrangian(const double data[]) {
 	// First, check the data against the previous data
 	// This prevents the results being computed multiple times on the same data
 	if (data[0] == storeddata[0] &&
@@ -56,8 +55,7 @@ int Kessence::computelagrangian(const double data[]) {
 			data[2] == storeddata[2] &&
 			data[3] == storeddata[3]) {
 		// It's the same as before, so don't recompute it
-		// Success!
-		return 0;
+		return;
 	}
 
 	// Extract data for easier reading of the code
@@ -100,33 +98,19 @@ int Kessence::computelagrangian(const double data[]) {
 	for (int i = 0; i < 4; i++)
 		storeddata[i] = data[i];
 
-	// Success!
-	return 0;
 }
 
 // Returns the ratio rho_Q/rho_c
 double Kessence::energydensity(const double data[]){
-	// Extract data for easier reading of the code
-	double a = data[0];
-	double phi = data[1];
-	double phidot = data[2];
-	double hubble = data[3];
-
 	// Compute quantities
-	int result = computelagrangian(data);
+	computelagrangian(data);
 
 	return (2.0 * X * LX - L) / 3.0;
 }
 // Returns the ratio P_Q/rho_c
 double Kessence::pressure(const double data[], const double hdot){
-	// Extract data for easier reading of the code
-	double a = data[0];
-	double phi = data[1];
-	double phidot = data[2];
-	double hubble = data[3];
-
 	// Compute quantities
-	int result = computelagrangian(data);
+	computelagrangian(data);
 
 	return L / 3.0;
 }
@@ -182,7 +166,7 @@ double Kessence::speedofsound2(const double data[]) {
 	// The speed of sound in k-essence can vary from 1.
 
 	// Compute quantities
-	int result = computelagrangian(data);
+	computelagrangian(data);
 
 	// Return result
 	return LX / (LX + 2.0 * X * LXX);
@@ -193,7 +177,7 @@ bool Kessence::isghost(const double data[]) {
 	// K-essence becomes ghost-like when the denominator in the speed of sound squared becomes negative.
 
 	// Compute quantities
-	int result = computelagrangian(data);
+	computelagrangian(data);
 
 	// Calculate and return the result
 	if (LX + 2.0 * X * LXX < 0)

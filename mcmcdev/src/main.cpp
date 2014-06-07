@@ -122,8 +122,6 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 	
 	// Get the number of parameters
 	int numparams = spriors.size();
-	// Variable holding the values of the parameters	
-	double *parameters = new double[numparams];
 	// Create array to hold the current values of the parameters
 	double *current = new double [numparams];
 	// Create array to hold the proposed values of the parameters
@@ -143,22 +141,18 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 	for(int param = 0; param < numparams; param++){
 		lower = priors[param];
 		upper = priors[param + numparams];
-		parameters[param] = lower + UnitRand() * (upper - lower);
+		current[param] = lower + UnitRand() * (upper - lower);
 	}
 	
 	// Open up file to dump chain info
 	string filename = runparams.chaindir + runparams.chainfileprefix + "_" + Int2String(runparams.chainID) + ".dat";
 	MCMCchainfile.open(filename.c_str());
 	
+    // Current value of the likelihood function
+    L_current = ComputeLikelihood(current, data);
+
 	// Start the sampling
 	while(true){
-		
-		// Dump the values of "parameters" into "current"
-		// NOTE: for step = 0, these are the random initial points picked
-		memcpy(current, parameters, numparams * sizeof(double));
-		
-		// Current value of the likelihood function
-		L_current = ComputeLikelihood(current, data);
 		
 		// Get some proposed parameters
 		GetProposedParameters(priors, current, proposed, numparams);
@@ -174,19 +168,15 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 			// Increment acceptance counter
 			MCMCaccept_counter++;
 			// Store proposed parameters
-			memcpy(parameters, proposed, numparams*sizeof(double));
+			memcpy(current, proposed, numparams*sizeof(double));
+			L_current = L_proposed;
 		}
 		
 		// Dump to file after burn-in
 		if(MCMCstep > MCMCburninsteps){
-			
-			// Only dump chain info to file every "chaindumpfreq" MCMCsteps.				
-			if(MCMCstep % MCMCchaindumpfreq == 0 ){
-				for(int n = 0; n < numparams; n++)
-					MCMCchainfile << parameters[n] << "\t";
-				MCMCchainfile << "\t" << L_current << endl;
-			}
-			
+            for(int n = 0; n < numparams; n++)
+                MCMCchainfile << current[n] << "\t";
+            MCMCchainfile << L_current << endl;
 		}
 		else{
 		    // Only start the acceptance counter after the burn-in period has ended
@@ -206,7 +196,6 @@ void runchain(struct RPS &runparams, vector<DATA> &data, vector<PARAMP> spriors)
 
 	cout << setprecision(4) << "Acceptance rate = " << 100 * MCMCaccept_counter / (float) (MCMCstep - MCMCburninsteps) << "%" << endl;
 
-	delete parameters;
 	delete current;
 	delete proposed;
 	delete priors;

@@ -43,10 +43,10 @@ int Fr::derivatives(const double data[], double derivs[], Parameters &params) {
 // Returns the ratio rho_Q/rho_c
 double Fr::energydensity(const double data[]){
     // Extract data for easier reading of the code
-    double a = data[0];
-    double phi = data[1];
-    double phidot = data[2];
-    double hubble = data[3];
+//    double a = data[0];
+//    double phi = data[1];
+//    double phidot = data[2];
+//    double hubble = data[3];
 
     // Your code here
     return 0;
@@ -54,10 +54,10 @@ double Fr::energydensity(const double data[]){
 // Returns the ratio P_Q/rho_c
 double Fr::pressure(const double data[], const double hdot){
     // Extract data for easier reading of the code
-    double a = data[0];
-    double phi = data[1];
-    double phidot = data[2];
-    double hubble = data[3];
+//    double a = data[0];
+//    double phi = data[1];
+//    double phidot = data[2];
+//    double hubble = data[3];
 
     // Your code here
     return 0;
@@ -80,15 +80,15 @@ int Fr::init(double data[], double time, Parameters &params, IniReader &init, Ou
     // Set the computelagrangian data to uninitialized
     for (int i = 0; i < 4; i++) storeddata[i] = -1;
 
-    // Construct H
-    // Temporary variable
-    double temp;
-    // Scale factor
-    double a = data[0];
-    double a2 = a * a;
-    // Scalar field
-    double phi = data[1];
-    double phidot = data[2];
+//    // Construct H
+//    // Temporary variable
+//    double temp;
+//    // Scale factor
+//    double a = data[0];
+//    double a2 = a * a;
+//    // Scalar field
+//    double phi = data[1];
+//    double phidot = data[2];
 
     // There are two values of H; construct both of them and choose the positive one
     // If there are two positive roots, use the ini file to determine which to take

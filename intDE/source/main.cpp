@@ -48,6 +48,7 @@ int main(int argc, char* argv[]) {
     // Figure out if we're going to postprocess or not
     bool dopostprocess = inifile.getiniBool("postprocess", false, "Single");
 
+
     //**************//
     // Output class //
     //**************//
@@ -76,6 +77,20 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    // Load SN1a data
+    // Not so much here in a single run, but when doing multiple runs, it makes sense to store the SN1a data in memory
+    // rather than reading the file each time it's needed.
+    // Here, we load up the SN1a data (if postprocessing is true)
+    vector<vector<double> > SN1adata;
+    if (dopostprocess) {
+        string sn1afile = inifile.getiniString("union21", "SCPUnion2.1_mu_vs_z.txt", "Function");
+        if (loadSN1adata(sn1afile, SN1adata) != 0) {
+            // Could not find data file
+            myOutput->printlog("Warning: cannot find Union2.1 SN1a data file.");
+            cout << "Warning: cannot find Union2.1 SN1a data file." << endl;
+        }
+    }
+
 
     //*******************//
     // Do the evolution! //
@@ -89,7 +104,7 @@ int main(int argc, char* argv[]) {
     boost::timer::cpu_timer myTimer;
 
     // Do the evolution (the one line that does everything)
-    result = doEvolution(inifile, myParams, *myOutput, dopostprocess);
+    result = doEvolution(inifile, myParams, *myOutput, SN1adata, dopostprocess);
 
     // Stop timing
     myTimer.stop();

@@ -28,21 +28,6 @@ using std::endl;
 using std::setprecision;
 using std::scientific;
 
-// A routine that prints a progressbar to screen
-// Make sure to call std::cout << endl; to clear the bar after finishing
-void updateprogress(float progress) {
-    int barWidth = 70;
-    std::cout << "[";
-    int pos = barWidth * progress;
-    for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) std::cout << "=";
-        else if (i == pos) std::cout << ">";
-        else std::cout << " ";
-    }
-    std::cout << "] " << int(progress * 100.0) << " %\r";
-    std::cout.flush();
-}
-
 // Our program entry point
 // This entry point is just a wrapper around the evolution routines.
 // It sets up the input parameters as well as the output file, and otherwise just calls the routines.
@@ -66,7 +51,11 @@ int main(int argc, char* argv[]) {
     // inifile.setparam("desiredh", "Cosmology", 1);
 	// First parameter is the key name, the second is the section name, and the third is the value, either an integer, string or double
 
-	bool showprogress = inifile.getiniBool("progress", true, "Sweep");
+    // Progressbar stuff
+    bool showprogress = inifile.getiniBool("progress", true, "Sweep");
+    float progress = 0.0;
+    int barcount = 0;
+
 
     //**************//
     // Output class //
@@ -140,9 +129,14 @@ int main(int argc, char* argv[]) {
     parameter2.reserve(totnumsteps);
     chisquareds.reserve(totnumsteps);
 
-    // Progressbar stuff
-    float progress = 0.0;
-    int barcount = 0;
+    // Load SN1a data
+    vector<vector<double> > SN1adata;
+    string sn1afile = inifile.getiniString("union21", "SCPUnion2.1_mu_vs_z.txt", "Function");
+    if (loadSN1adata(sn1afile, SN1adata) != 0) {
+        // Could not find data file
+        cout << "Warning: cannot find Union2.1 SN1a data file." << endl;
+    }
+
 
     //*******************//
     // Perform the sweep //
@@ -169,7 +163,7 @@ int main(int argc, char* argv[]) {
             Parameters myParams(inifile);
 
             // Do the evolution
-            result = doEvolution(inifile, myParams, myOutput, true);
+            result = doEvolution(inifile, myParams, myOutput, SN1adata, true);
 
             // Interpret the result of the evolution
             if (result == 0) {

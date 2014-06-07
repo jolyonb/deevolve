@@ -1,2 +1,7 @@
-LinearW wnaught -1.5 -0.5 0.1
-LinearW wa -1 1 0.1
+# Parameters to MCMC over are included in this file
+# The format is "section name" "parameter name" "prior min" "prior max" "sigma"
+# with spaces between all quantities.
+# All parameters not appearing in this list are taken from the params.ini file
+# Lines beginning with # are comments; blank lines are permitted
+LinearW wnaught -1.5 -0.5 0.04
+LinearW wa -1 1 0.05

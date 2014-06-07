@@ -42,7 +42,7 @@ double rsintfunc(double z, void *params);
 double rsintfuncinf(double z, void *params);
 
 // Routine to compute chi^2 values for supernovae data
-double chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniReader &init);
+double chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniReader &init, vector<vector<double> > &SN1adata);
 
 // Routine to compute chi^2 values for CMB data
 void chi2CMB(vector<double>& redshift, vector<double>& mu, double rs, Output &output, Parameters &params, double& WMAP, double& Planck);

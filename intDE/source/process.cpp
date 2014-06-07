@@ -10,7 +10,6 @@
 #include "process.h"
 
 using namespace std;
-using namespace boost::filesystem;
 
 static inline double getzCMB(Parameters &params) {
 	// Calculate redshift of recombination (CMB formation)
@@ -340,7 +339,7 @@ double rsintfuncinf(double z, void *params) {
 
 }
 
-double chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniReader &init) {
+double chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, IniReader &init, vector<vector<double> > &SN1adata) {
 	// This routine computes the chi^2 value for supernovae measurements
     // Returns the chi^2 value, as well as sending it to the output class
 
@@ -364,59 +363,24 @@ double chi2SN1a(vector<double>& redshift, vector<double>& mu, Output &output, In
 	gsl_spline_init (muspline.spline, pz, pmu, numrows);
 
 	// Step 2: Read in all of the data from the SN1a data
-	string sn1afile = init.getiniString("union21", "SCPUnion2.1_mu_vs_z.txt", "Function");
-	// Check that the file exists before further processing
-	if (exists(sn1afile)) {
-		// Begin by reading in the data file
-		ifstream f(sn1afile.c_str());
-		string l;
-		vector<vector<double> > rows; // This is a vector of vectors
 
-		// Read in the file one line at a time into the string l
-		while(getline(f, l)) {
-			// If the first character is a # (comment), move onto the next line
-			if (l[0] == '#')
-				continue;
-			// Convert the string l into a stringstream s
-			stringstream s(l);
-			string extract;
-			double entry;
-			vector<double> row;
-			// Extract entries one at a time, using a tab as a delimiter
-			// Ignore the first entry, which is the supernovae name
-			bool first = true;
-			while(getline(s, extract, '\t')) {
-				if (first) {
-					first = false;
-				} else {
-				    row.push_back(atof(extract.c_str()));
-				}
-			}
-			rows.push_back(row);
-		}
+    // SN1adata contains a vector of doubles. Each row is the data from a supernovae.
+    // Each row contains four pieces of information: redshift, distance modulus, error on distance modulus, and a piece of
+    // information that is not of use to us.
 
-		// rows now contains a vector of doubles. Each row is the data from a supernovae.
-		// Each row contains four pieces of information: redshift, distance modulus, error on distance modulus, and a piece of
-		// information that is not of use to us.
+    // Iterate through each row, and construct the chi^2
+    double val = 0;
+    int numsn = SN1adata.size();
+    // If the file failed to load, then numsn = 0.
+    for (int i = 0; i < numsn; i++) {
+        // Add (mu - mu(z))^2 / sigma^2 to the chi^2
+        val = (SN1adata[i][1] - gsl_spline_eval (muspline.spline, SN1adata[i][0], muspline.acc)) / SN1adata[i][2];
+        chi2 += val * val;
+    }
 
-		// Iterate through each row, and construct the chi^2
-		double val = 0;
-		int numrows = rows.size();
-		for (int i = 0; i < numrows; i++) {
-			// Add (mu - mu(z))^2 / sigma^2 to the chi^2
-			val = (rows[i][1] - gsl_spline_eval (muspline.spline, rows[i][0], muspline.acc)) / rows[i][2];
-			chi2 += val * val;
-		}
-
-		// Having gotten here, present the results
-		output.printvalue("SNchi", chi2);
-		// The minimum chi^2 for LambdaCDM for this data set is ~562.5
-
-	}
-	else {
-		// Could not find data file
-		output.printlog("Error: cannot find Union2.1 SN1a data file.");
-	}
+    // Having gotten here, present the results
+    output.printvalue("SNchi", chi2);
+    // The minimum chi^2 for LambdaCDM for this data set is ~562
 
 	// Release the spline memory
 	gsl_spline_free (muspline.spline);

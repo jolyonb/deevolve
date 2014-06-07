@@ -18,55 +18,108 @@
  */
 
 #include "main.h"
-// Also need to include MCMC specific header
-#include "main_MCMC.h"
 
-using std::cout;
-using std::endl;
-using std::setprecision;
-using std::scientific;
+using namespace std;
+
+double ComputeLikelihood(IniReader& inifile, Print2Memory& output, string *names, string *sections, double *parameters, int numparams, bool usingSN1a, vector<vector<double> > &SN1adata);
+void GetProposedParameters(double *priors, double *current, double *proposed, int numparams);
 
 // Our program entry point
-// This entry point is just a wrapper around the evolution routines.
-// It sets up the input parameters as well as the output file, and otherwise just calls the routines.
 int main(int argc, char* argv[]) {
 
-    int result; // Just a number for return values
+    // Start timing!
+    boost::timer::cpu_timer myTimer;
 
     //******************//
     // Input parameters //
     //******************//
 
-	// Read the input parameters file, named "params.ini" by default.
-	// If there is a command line argument, assume that it is the filename for the parameters file.
-	IniReader inifile;
-	if (argc > 1)
-		inifile.read(argv[1]);
-	else
-		inifile.read("params.ini");
-	 
-    // Set up the output class. Print2Memory is used for MCMC
+    // Read the input parameters file, named "params.ini" by default.
+    // If there is a command line argument, assume that it is the filename for the parameters file.
+    IniReader inifile;
+    string paramsfile;
+    if (argc > 1)
+        paramsfile = argv[1];
+    else
+        paramsfile = "params.ini";
+    inifile.read(paramsfile.c_str());
+
+    //**************//
+    // Declarations //
+    //**************//
+
+    // Print2Memory is used for MCMC outputting
     Print2Memory myOutput;
 
-    // Check that output is a go
-    if (!myOutput.filesready()) {
-        // End gracefully if not
-        cout << "Unable to open file for output." << endl;
-        return -1;
+    // Seed random number generator
+    RNGtool.seed(time(NULL));
+
+    // Output directories and filenames
+    string chaindir = inifile.getiniString("chaindir", "chains", "MCMC");
+    string chainsubdir = inifile.getiniString("chainsubdir", "run1", "MCMC");
+    string outputdir = chaindir + "/" + chainsubdir;
+    string basename = inifile.getiniString("runname", "run", "Function");
+
+    // Make sure that the directories exist
+    if (!boost::filesystem::exists(chaindir + "/")) {
+        // Directory doesn't exist. Make it.
+        boost::filesystem::create_directory(chaindir);
+        std::cout << "Creating directory " << chaindir << "/" << std::endl;
+    }
+    if (!boost::filesystem::exists(outputdir + "/")) {
+        // Directory doesn't exist. Make it.
+        boost::filesystem::create_directory(outputdir);
+        std::cout << "Creating directory " << outputdir << "/" << std::endl;
     }
 
-    // Start timing!
-    boost::timer::cpu_timer myTimer;
 
-	// Get the priors
+    // Copy the params.ini file being used into the subdir
+    if (boost::filesystem::exists(paramsfile.c_str()))
+        boost::filesystem::copy_file(paramsfile, outputdir + "/params.ini", boost::filesystem::copy_option::overwrite_if_exists);
+
+    // MCMC parameters
+    // Number of MCMC steps to burn
+    int MCMCburninsteps = inifile.getiniInt("MCMCburninsteps", 1000, "MCMC");
+    // Number of MCMC steps to take
+    int MCMCnumsteps = inifile.getiniInt("MCMCnumsteps", 40000, "MCMC");
+    // Number of MCMC chains
+    int MCMCnumchains = inifile.getiniInt("numchains", 5, "MCMC");
+
+    // Various variables
+    int MCMCstep, MCMCaccept_counter;
+    double lower, upper;
+    bool usingSN1a;
+
+    // Variables for holding the current and proposed likelihoods, and their ratio
+    double L_current, L_proposed, LikelihoodRatio;
+
+    // Progressbar stuff
+    bool showprogress = inifile.getiniBool("progress", true, "MCMC");
+    float progress = 0.0;
+    int barcount = 0;
+
+
+    //****************//
+    // Initialization //
+    //****************//
+
+    // Get the priors
 	ifstream priorsin;
+    string line;
 	priorsin.open(inifile.getiniString("priorsfile", "priors.txt", "MCMC").c_str());
 	vector<PARAMPRIORS> spriors;
 	if(priorsin){
 		while(!priorsin.eof()){
-			PARAMPRIORS temp;
-			priorsin >> temp.section >> temp.name >> temp.lower >> temp.upper >> temp.sigma;
-			spriors.push_back(temp);
+		    // Extract the line
+		    getline(priorsin, line);
+		    // Check whether the line is a comment
+		    if (line[0] != '#' && line.length() > 0) {
+                // Convert the string into a stringstream for extraction
+                stringstream stream(line);
+                PARAMPRIORS temp;
+                stream >> temp.section >> temp.name >> temp.lower >> temp.upper >> temp.sigma;
+                spriors.push_back(temp);
+		    }
 		}
 		priorsin.close();
 	}
@@ -75,39 +128,22 @@ int main(int argc, char* argv[]) {
 	int numparams = spriors.size();
 	
 	// Report priors info to screen
-	cout << "The priors are" << endl;
+	cout << "The priors are:" << endl;
 	for(int n = 0; n < numparams; n++)
 		cout << spriors[n].section << " " << spriors[n].name
 			 << " :: " << spriors[n].lower << "\t" << spriors[n].upper << "\t" << spriors[n].sigma << endl;
 	
-	// See random number generator
-	RNGtool.seed(time(NULL));
-	
-	// "temporary" holding values of the parameters
-	// Values of the parameters
-	double *parameters = new double[numparams];
+	// Initialize containers to store various parameters
 	// Current values of the parameters
 	double *current = new double[numparams];
 	// Proposed values of the parameters
 	double *proposed = new double[numparams];
 	// Array to hold the prior info
 	double *priors = new double[3 * numparams];
-
 	// Names of the parameters
 	string *names = new string[numparams];
 	// Sections that the parameters are in
 	string *sections = new string[numparams];	
-	// Number of MCMC steps to burn
-	int MCMCburninsteps = inifile.getiniInt("MCMCburninsteps", 1000, "MCMC");
-	// Frequency to dump chain info to file
-	int MCMCchaindumpfreq = inifile.getiniInt("MCMCchaindumpfreq", 100, "MCMC");
-	// Number of MCMC steps to take
-	int MCMCnumsteps = inifile.getiniInt("MCMCnumsteps", 40000, "MCMC");
-	// Number of MCMC chains
-	int MCMCnumchains = inifile.getiniInt("numchains", 5, "MCMC");
-	// Define some useful ints and doubles
-	int MCMCchainID, MCMCstep, MCMCaccept_counter;
-	double lower, upper;
 	
 	// Populate prior array from input prior struct
 	for(int n = 0; n < numparams; n++){
@@ -118,50 +154,89 @@ int main(int argc, char* argv[]) {
 		priors[n + numparams] = spriors[n].upper;
 		priors[n + 2 * numparams] = spriors[n].sigma;
 	}
-	
-	// Run the chains
-	for(int chain = 0; chain < MCMCnumchains; chain++){
+
+    // Load SN1a data
+    vector<vector<double> > SN1adata;
+    string sn1afile = inifile.getiniString("union21", "SCPUnion2.1_mu_vs_z.txt", "Function");
+    if (loadSN1adata(sn1afile, SN1adata) != 0) {
+        // Could not find data file
+        cout << "Warning: cannot find Union2.1 SN1a data file." << endl;
+    }
+
+
+	//******************//
+    // Begin the chains //
+    //******************//
+
+	for(int chain = 1; chain < MCMCnumchains + 1; chain++){
 		
-		// Report chain number to screen
-		cout << "chain # " << chain << endl;
-		// Zero the MCMC step number
-		MCMCstep = 0;
-		// Zero the MCMC acceptance counter
-		MCMCaccept_counter = 0;
-		// ID of this chain
-		MCMCchainID = chain+1E4;
-		
-		// Start off at a random position in parameter space
+        // Go and find an appropriate file name (using 4 digit numbers as the default)
+        string outputname = getfilename(outputdir, basename, "", inifile.getiniInt("numberpad", 4, "Function"), false) + ".dat";
+        // Open up file to dump chain info
+        ofstream MCMCchainfile(outputname.c_str());
+        // Report chain number to screen
+        cout << "Chain #" << chain << " outputting to " << outputname << endl;
+        // Make sure the file actually opened
+        if (!MCMCchainfile.is_open()) {
+            // Big problem!
+            cout << "Error: could not open output file! Terminating." << endl;
+            break;
+        }
+
+        // Zero the MCMC step number
+        MCMCstep = 0;
+        // Zero the MCMC acceptance counter
+        MCMCaccept_counter = 0;
+
+        // Start off at a random position in parameter space
 		for(int param = 0; param < numparams; param++){
 			lower = priors[param];
 			upper = priors[param + numparams];
-			parameters[param] = lower + UnitRand() * (upper - lower);
+			current[param] = lower + UnitRand() * (upper - lower);
 		}
 	
-		// Open up file to dump chain info
-		ofstream MCMCchainfile;
-		string filename = inifile.getiniString("chainddir", "chains", "MCMC") +"/"
-						  + inifile.getiniString("chaindir", "run1", "MCMC") +"/"				
-						  + inifile.getiniString("chainfileprefix", "chains", "MCMC")  
-						  + "_" + Int2String(MCMCchainID) + ".dat";
-		MCMCchainfile.open(filename.c_str());
-		
-		// Variables for holding the current and proposed likelihoods,
-		// and their ratio
-	    double L_current, L_proposed, LikelihoodRatio;
-     	
+        // Print some information on the chain to file
+        MCMCchainfile << "# Chain " << chain << " for model " << inifile.getiniString("Model", "LambdaCDM", "Cosmology")
+                      << " using following datasets:" << endl;
+        // Extract the bitmask and report the experiments being used
+        int bitmaskcheck = inifile.getiniInt("chicombo", 29, "Function");
+        if (bitmaskcheck < 1) bitmaskcheck = 29;
+        if (bitmaskcheck > 127) bitmaskcheck = 29;
+        unsigned int bitmask = bitmaskcheck;
+        if ((bitmask & 1) > 0) {
+            MCMCchainfile << "# Type 1a Supernovae" << endl;
+            usingSN1a = true;
+        } else {usingSN1a = false;}
+        if ((bitmask & 2) > 0) MCMCchainfile << "# BAO data (SDSS)" << endl;
+        if ((bitmask & 4) > 0) MCMCchainfile << "# BAO data (SDSSR)" << endl;
+        if ((bitmask & 8) > 0) MCMCchainfile << "# Hubble prior" << endl;
+        if ((bitmask & 16) > 0) MCMCchainfile << "# WMAP distance posteriors" << endl;
+        if ((bitmask & 32) > 0) MCMCchainfile << "# Planck distance posteriors" << endl;
+        // Print the priors
+        MCMCchainfile << "# Priors:" << endl;
+        for(int n = 0; n < numparams; n++)
+            MCMCchainfile << "# " << spriors[n].section << " " << spriors[n].name
+                 << " :: " << spriors[n].lower << "\t" << spriors[n].upper << "\t" << spriors[n].sigma << endl;
+        MCMCchainfile << "# ";
+        for(int n = 0; n < numparams; n++)
+            MCMCchainfile << spriors[n].name << "\t";
+        MCMCchainfile << "Likelihood (unnormalised)" << endl;
+        // Set up precision outputting
+        MCMCchainfile << scientific << setprecision(15);
+
+        // Calculate the likelihood of the initial guess
+        L_current = ComputeLikelihood(inifile, myOutput, names, sections, current, numparams, usingSN1a, SN1adata);
+
+        // Reset progress counter
+        barcount = 0;
+
 		// Start the sampling
 		while(true){
 		
-			// Dump the values of "parameters" into "current"
-			// NOTE: for step = 0, these are the random initial points picked
-			memcpy(current, parameters, numparams * sizeof(double));
-			// Current value of the likelihood function
-			L_current = ComputeLikelihood(inifile, names, sections, current, numparams);
 			// Get some proposed parameters
 			GetProposedParameters(priors, current, proposed, numparams);
 			// Get the value of the likelihood with these proposed parameters		
-			L_proposed = ComputeLikelihood(inifile, names, sections, proposed, numparams);
+			L_proposed = ComputeLikelihood(inifile, myOutput, names, sections, proposed, numparams, usingSN1a, SN1adata);
 			// Compute likelihood ratio	
 			LikelihoodRatio = L_proposed / L_current;
 			// Decide whether to accept the proposed parameters.
@@ -169,46 +244,56 @@ int main(int argc, char* argv[]) {
 				// Increment acceptance counter
 				MCMCaccept_counter++;
 				// Store proposed parameters
-				memcpy(parameters, proposed, numparams*sizeof(double));
+				memcpy(current, proposed, numparams*sizeof(double));
+				L_current = L_proposed;
 			}
 		
 			// Dump to file after burn-in
 			if(MCMCstep > MCMCburninsteps){
-			
-				// Only dump chain info to file every "chaindumpfreq" MCMCsteps.				
-				if(MCMCstep % MCMCchaindumpfreq == 0 ){
-					for(int n = 0; n < numparams; n++)
-						MCMCchainfile << parameters[n] << "\t";
-					MCMCchainfile << "\t" << L_current << endl;
-				}
-			
+                for(int n = 0; n < numparams; n++)
+                    MCMCchainfile << current[n] << "\t";
+                MCMCchainfile << L_current << endl;
 			}
 			else{
 			    // Only start the acceptance counter after the burn-in period has ended
-				MCMCaccept_counter = 0;
+				MCMCaccept_counter = 1; // Set to one because we accept the first point we count
 			}
 		
-			// Say we've taken one more step
+			// Increment our step counter
 			MCMCstep++;
+
+            // Update the progress bar every 20 cycles
+            if (showprogress && ++barcount >= 20) {
+                barcount = 0;
+                progress = (float) MCMCstep / (float) MCMCnumsteps;
+                updateprogress(progress);
+            }
+
 			// Halt if we've taken enough steps
 			if(MCMCstep >= MCMCnumsteps) break;
 			
-		} // END samping while(){}		   
+		} // END sampling while(){}
 	
-		// Write final counts for this chain
-		MCMCchainfile << "# Number of samples (after burn-in): " << MCMCstep - MCMCburninsteps
-		               << ", Number of acceptances: " << MCMCaccept_counter << endl;
+	    // Clear the progressbar
+	    if (showprogress) {
+	        updateprogress(1.0);
+	        std::cout << std::endl;
+	    }
+
+	    // Write final counts for this chain
+		MCMCchainfile << "# Number of samples (after burn-in): " << MCMCstep - MCMCburninsteps << endl
+		               << "# Number of acceptances: " << MCMCaccept_counter << endl;
 		MCMCchainfile.close();
-		cout << setprecision(4) << "Acceptance rate = " 
+		cout << setprecision(4) << "Chain complete. Acceptance rate = "
 			 << 100 * MCMCaccept_counter / (float) (MCMCstep - MCMCburninsteps) << "%" << endl;
 
 	} // END chain-loop
+
 
     //**********//
     // Clean up //
     //**********//
 
-	delete parameters;
 	delete current;
 	delete proposed;
 	delete priors;
@@ -217,17 +302,18 @@ int main(int argc, char* argv[]) {
     myTimer.stop();
     double ms = myTimer.elapsed().wall / 1e6;
     if (ms < 1e3)
-        cout << setprecision(4) << "chains complete in " << ms << " milliseconds.";
+        cout << setprecision(4) << "Run complete in " << ms << " milliseconds.";
     else
-        cout << setprecision(4) << "chains complete in " << ms / 1000.0 << " seconds.";
+        cout << setprecision(4) << "Run complete in " << ms / 1000.0 << " seconds.";
     cout << endl;
 
     // Exit gracefully
     return 0;
+
 }
 
-
-double ComputeLikelihood(IniReader& inifile, string *names, string *sections, double *parameters, int numparams){
+// Computes the likelihood of given parameters
+double ComputeLikelihood(IniReader& inifile, Print2Memory& output, string *names, string *sections, double *parameters, int numparams, bool usingSN1a, vector<vector<double> > &SN1adata){
 	
 	// Set values of the parameters (note: need to get name & section for inifile)
 	for(int n = 0; n < numparams; n++)	
@@ -235,18 +321,29 @@ double ComputeLikelihood(IniReader& inifile, string *names, string *sections, do
 	
     // Set up the cosmological parameters 
     Parameters myParams(inifile);
-	// Setup the Print2Memory class
-    Print2Memory myOutput;
 	// Do the evolution, and return the likelihood for the data combination
 	// defined by "combinationchi"
-    if ( doEvolution(inifile, myParams, myOutput, true) == 0) 
-		return exp( - 0.5 * myOutput.getvalue("combinationchi", 0.0));
+    double result;
+    if ( doEvolution(inifile, myParams, output, SN1adata, true) == 0)
+        if (usingSN1a) {
+            // If the supernovae data is being used, then that has a base chi^2 of around 560
+            // This translates to very small likelihoods, as e^{-500} is a very small number
+            // In order to prevent underflow errors, we add an offset to the chi^2 (which doesn't change anything)
+            result = exp( - 0.5 * (output.getvalue("combinationchi", 0.0) - 550.0));
+        } else {
+            result = exp( - 0.5 * output.getvalue("combinationchi", 0.0));
+        }
 	else
-		return 0;	
+		result = 0;
+
+    // Clear the output of all data it just recorded
+    output.printfinish(0.0);
 	
+    return result;
 } // END ComputeLikelihood()
  
- 
+
+// Proposes a new point in parameterspace to jump to
 void GetProposedParameters(double *priors, double *current, double *proposed, int numparams){
 	
 	// Get the upper and lower bounds, and sigma on the prior for this parameter
@@ -267,8 +364,8 @@ void GetProposedParameters(double *priors, double *current, double *proposed, in
 		// and so must repeat until a parameter is found which is inside prior range.
 		while( true ){
 			
-			// Use Box-Muller transform to get N(0,1) -- Normally distributed number.
-			prop = thisval + BoxMuller() * sigma;
+			// Jump around to a nearby parameter with normal distribution with the given sigma
+			prop = thisval + NormalRand() * sigma;
 			
 			// Make sure the proposal is inside the prior range before getting out
 			if(prop <= upper && prop >= lower) break;

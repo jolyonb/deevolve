@@ -35,7 +35,7 @@ void Model::getstate(const double data[], const double time, double info[], Para
 	double a4 = a2 * a2;
 	// Go and compute the derivatives
 	double derivs[4];
-	int result = derivatives(data, derivs, params);
+	derivatives(data, derivs, params);
 	// Hubble parameter H = \dot{a}/a
 	double hubble = derivs[0] / a;
 	double hubble2 = hubble * hubble;

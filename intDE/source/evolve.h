@@ -35,6 +35,6 @@
 
 
 // Function that performs the evolution
-int doEvolution(IniReader&, Parameters&, Output&, bool postprocess = false);
+int doEvolution(IniReader&, Parameters&, Output&, vector<vector<double> > &SN1adata, bool postprocess = false);
 
 #endif /* EVOLVE_H_ */
