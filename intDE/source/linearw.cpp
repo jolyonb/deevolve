@@ -9,7 +9,6 @@ int LinearW::derivatives(const double data[], double derivs[], Parameters &param
 	// Extract data for easier reading of the code
 	double a = data[0];
 	double a2 = a * a;   // a^2
-	double phi = data[1];
 	double phidot = data[2];
 	double hubble = data[3];
 

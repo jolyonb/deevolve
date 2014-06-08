@@ -9,7 +9,6 @@ int LambdaCDM::derivatives(const double data[], double derivs[], Parameters &par
 	// Extract data for easier reading of the code
 	double a = data[0];
 	double a2 = a * a;   // a^2
-	double phi = data[1];
 	double phidot = data[2];
 	double hubble = data[3];
 
@@ -34,22 +33,10 @@ int LambdaCDM::derivatives(const double data[], double derivs[], Parameters &par
 
 // Returns the ratio rho_Q/rho_0
 double LambdaCDM::energydensity(const double data[]){
-	// Extract data for easier reading of the code
-	double a = data[0];
-	double phi = data[1];
-	double phidot = data[2];
-	double hubble = data[3];
-
 	return OmegaLambdah2;
 }
 // Returns the ratio P_Q/rho_0
 double LambdaCDM::pressure(const double data[], const double hdot){
-	// Extract data for easier reading of the code
-	double a = data[0];
-	double phi = data[1];
-	double phidot = data[2];
-	double hubble = data[3];
-
 	return -OmegaLambdah2;
 }
 

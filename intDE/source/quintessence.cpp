@@ -186,7 +186,6 @@ double Quintessence::energydensity(const double data[]){
 	double a = data[0];
 	double phi = data[1];
 	double phidot = data[2];
-	double hubble = data[3];
 
 	return (0.5 * phidot * phidot / a / a + potential(phi)) / 3;
 	// The factor of 1/3 is correct. Note that a cosmological constant will contribute
@@ -198,7 +197,6 @@ double Quintessence::pressure(const double data[], const double hdot){
 	double a = data[0];
 	double phi = data[1];
 	double phidot = data[2];
-	double hubble = data[3];
 
 	return (0.5 * phidot * phidot / a / a - potential(phi)) / 3;
 }
