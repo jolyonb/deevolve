@@ -3,5 +3,10 @@
 # with spaces between all quantities.
 # All parameters not appearing in this list are taken from the params.ini file
 # Lines beginning with # are comments; blank lines are permitted
-LinearW wnaught -1.5 -0.5 0.04
-LinearW wa -1 1 0.05
+
+# We want to modify the sigmas such that we obtain an acceptance rate of about 0.234
+LinearW wnaught -1.5 -0.5 0.06
+LinearW wa -1 1 0.06
+Cosmology Omegamh2 0.01 0.2 0.001
+Cosmology Omegabh2 0.005 0.1 0.0005
+Cosmology Omegakh2 -0.02 0.02 0.0005

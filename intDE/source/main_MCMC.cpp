@@ -58,7 +58,15 @@ int main(int argc, char* argv[]) {
     string chaindir = inifile.getiniString("chaindir", "chains", "MCMC");
     string chainsubdir = inifile.getiniString("chainsubdir", "run1", "MCMC");
     string outputdir = chaindir + "/" + chainsubdir;
-    string basename = inifile.getiniString("runname", "run", "Function");
+    string basename = inifile.getiniString("chainprefix", "chain", "MCMC");
+    string priorsfile = inifile.getiniString("priorsfile", "priors.txt", "MCMC");
+
+    // If the priors file doesn't exist, abort
+    // Make sure that the directories exist
+    if (!boost::filesystem::exists(priorsfile)) {
+        cout << "Priors file (" << priorsfile << ") does not exist. Aborting." << endl;
+        return -1;
+    }
 
     // Make sure that the directories exist
     if (!boost::filesystem::exists(chaindir + "/")) {
@@ -73,9 +81,11 @@ int main(int argc, char* argv[]) {
     }
 
 
-    // Copy the params.ini file being used into the subdir
-    if (boost::filesystem::exists(paramsfile.c_str()))
+    // Copy the params.ini and priors file being used into the subdir
+    if (boost::filesystem::exists(paramsfile.c_str())) {
         boost::filesystem::copy_file(paramsfile, outputdir + "/params.ini", boost::filesystem::copy_option::overwrite_if_exists);
+        boost::filesystem::copy_file(priorsfile, outputdir + "/priors.txt", boost::filesystem::copy_option::overwrite_if_exists);
+    }
 
     // MCMC parameters
     // Number of MCMC steps to burn
@@ -106,7 +116,7 @@ int main(int argc, char* argv[]) {
     // Get the priors
 	ifstream priorsin;
     string line;
-	priorsin.open(inifile.getiniString("priorsfile", "priors.txt", "MCMC").c_str());
+	priorsin.open(priorsfile.c_str());
 	vector<PARAMPRIORS> spriors;
 	if(priorsin){
 		while(!priorsin.eof()){
@@ -188,13 +198,6 @@ int main(int argc, char* argv[]) {
         // Zero the MCMC acceptance counter
         MCMCaccept_counter = 0;
 
-        // Start off at a random position in parameter space
-		for(int param = 0; param < numparams; param++){
-			lower = priors[param];
-			upper = priors[param + numparams];
-			current[param] = lower + UnitRand() * (upper - lower);
-		}
-	
         // Print some information on the chain to file
         MCMCchainfile << "# Chain " << chain << " for model " << inifile.getiniString("Model", "LambdaCDM", "Cosmology")
                       << " using following datasets:" << endl;
@@ -224,8 +227,19 @@ int main(int argc, char* argv[]) {
         // Set up precision outputting
         MCMCchainfile << scientific << setprecision(15);
 
-        // Calculate the likelihood of the initial guess
-        L_current = ComputeLikelihood(inifile, myOutput, names, sections, current, numparams, usingSN1a, SN1adata);
+        // Start off at a random position in parameter space
+        // But, make sure that it has a nonzero likelihood (otherwise it can meander almost indefinitely!)
+        L_current = 0;
+        while (L_current < 1e-100) {
+            for(int param = 0; param < numparams; param++){
+                lower = priors[param];
+                upper = priors[param + numparams];
+                current[param] = lower + UnitRand() * (upper - lower);
+            }
+            // Calculate the likelihood of the initial guess
+            L_current = ComputeLikelihood(inifile, myOutput, names, sections, current, numparams, usingSN1a, SN1adata);
+        }
+
 
         // Reset progress counter
         barcount = 0;
@@ -315,6 +329,9 @@ int main(int argc, char* argv[]) {
 // Computes the likelihood of given parameters
 double ComputeLikelihood(IniReader& inifile, Print2Memory& output, string *names, string *sections, double *parameters, int numparams, bool usingSN1a, vector<vector<double> > &SN1adata){
 	
+    // Make a clean slate for collecting data
+    output.printfinish(0.0);
+
 	// Set values of the parameters (note: need to get name & section for inifile)
 	for(int n = 0; n < numparams; n++)	
 		inifile.setparam(names[n], sections[n], parameters[n]);
@@ -336,9 +353,6 @@ double ComputeLikelihood(IniReader& inifile, Print2Memory& output, string *names
 	else
 		result = 0;
 
-    // Clear the output of all data it just recorded
-    output.printfinish(0.0);
-	
     return result;
 } // END ComputeLikelihood()
  

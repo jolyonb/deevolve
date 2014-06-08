@@ -3,13 +3,12 @@
 ####################################################
 #
 # Plot script: w(a), Omega_i(a), H(a), a(\tau)
-#   J. Pearson, Durham, March 2014
 #
 #   J. Pearson, Durham, March 2014
 #
 ####################################################
 #
-# USEAGE
+# USAGE
 #
 # To run for first time, need to change permissions
 #  chmod +x plot-w-Om.sh
