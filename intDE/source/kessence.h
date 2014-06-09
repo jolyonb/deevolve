@@ -44,7 +44,7 @@ class Kessence : public Model {
 
 		// Function to calculate the Lagrangian and all its appropriate derivatives:
 		// U, Up, Upp, UX, UXX, UXP
-		int computelagrangian(const double data[]);
+		void computelagrangian(const double data[]);
 		// Each time the stuff is calculated, store both the data and it, so as not to waste computation time
 		double storeddata[4];
 		double X;

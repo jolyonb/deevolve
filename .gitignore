@@ -18,6 +18,7 @@ mcmcdev/mcmc
 
 # Log directory
 intDE/logs/
+intDE/chains/
 
 # Plots directory
 intDE/plots/

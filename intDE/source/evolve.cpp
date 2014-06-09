@@ -33,7 +33,7 @@ static int intfunc(double, const double*, double*, void*);
 // 3: Did not get to a = 1 in allotted time
 // 4: Model reports invalid state
 // 5: Error in postprocessing integration of distance measures
-int doEvolution(IniReader& inifile, Parameters& params, Output& output, bool postprocess) {
+int doEvolution(IniReader& inifile, Parameters& params, Output& output, vector<vector<double> > &SN1adata, bool postprocess) {
 
     //****************//
     // Initialization //
@@ -204,7 +204,7 @@ int doEvolution(IniReader& inifile, Parameters& params, Output& output, bool pos
         chi2CMB(redshift, DA, rs, output, params, WMAPchi, Planckchi);
 
         // Next, do chi^2 of SN1a
-        SNchi = chi2SN1a(redshift, mu, output, inifile);
+        SNchi = chi2SN1a(redshift, mu, output, inifile, SN1adata);
 
         // Do chi^2 for hubble value
         Hubblechi = chi2hubble(params, inifile.getiniDouble("desiredh", 0.7, "Cosmology"), inifile.getiniDouble("sigmah", 0.03, "Cosmology"), output);

@@ -1,7 +1,7 @@
 # Compilation flags
 
 OPTIMIZE = -O3 -march=native -flto
-WARNINGS = -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable
+WARNINGS = -Wall -Wextra -Wno-unused-parameter
 
 CC = g++
 
