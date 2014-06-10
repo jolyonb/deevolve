@@ -218,8 +218,8 @@ int main(int argc, char* argv[]) {
         // Print the priors
         MCMCchainfile << "# Priors:" << endl;
         for(int n = 0; n < numparams; n++)
-            MCMCchainfile << "# " << spriors[n].section << " " << spriors[n].name
-                 << " :: " << spriors[n].lower << "\t" << spriors[n].upper << "\t" << spriors[n].sigma << endl;
+            MCMCchainfile << "#\t" << spriors[n].section << "\t" << spriors[n].name
+                 << "\t" << spriors[n].lower << "\t" << spriors[n].upper << "\t" << spriors[n].sigma << endl;
         MCMCchainfile << "# ";
         for(int n = 0; n < numparams; n++)
             MCMCchainfile << spriors[n].name << "\t";
@@ -230,7 +230,7 @@ int main(int argc, char* argv[]) {
         // Start off at a random position in parameter space
         // But, make sure that it has a nonzero likelihood (otherwise it can meander almost indefinitely!)
         L_current = 0;
-        while (L_current < 1e-100) {
+        while (L_current < 1e-200) {
             for(int param = 0; param < numparams; param++){
                 lower = priors[param];
                 upper = priors[param + numparams];
@@ -247,6 +247,9 @@ int main(int argc, char* argv[]) {
 		// Start the sampling
 		while(true){
 		
+            // Increment our step counter
+            MCMCstep++;
+
 			// Get some proposed parameters
 			GetProposedParameters(priors, current, proposed, numparams);
 			// Get the value of the likelihood with these proposed parameters		
@@ -273,9 +276,6 @@ int main(int argc, char* argv[]) {
 				MCMCaccept_counter = 1; // Set to one because we accept the first point we count
 			}
 		
-			// Increment our step counter
-			MCMCstep++;
-
             // Update the progress bar every 20 cycles
             if (showprogress && ++barcount >= 20) {
                 barcount = 0;
@@ -295,8 +295,8 @@ int main(int argc, char* argv[]) {
 	    }
 
 	    // Write final counts for this chain
-		MCMCchainfile << "# Number of samples (after burn-in): " << MCMCstep - MCMCburninsteps << endl
-		               << "# Number of acceptances: " << MCMCaccept_counter << endl;
+		MCMCchainfile << "# Number of samples (after burn-in):\t" << MCMCstep - MCMCburninsteps << endl
+		               << "# Number of acceptances:\t" << MCMCaccept_counter << endl;
 		MCMCchainfile.close();
 		cout << setprecision(4) << "Chain complete. Acceptance rate = "
 			 << 100 * MCMCaccept_counter / (float) (MCMCstep - MCMCburninsteps) << "%" << endl;
