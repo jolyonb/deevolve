@@ -31,7 +31,7 @@ intDE/debug/.deps/
 # MCMC chains
 mcmcdev/chains/
 intDE/chains/
-
+intDE/mcmctools/plots/
 *.like
 
 intDE/mcmctools/bins/wnaught_10002.like
