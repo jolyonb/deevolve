@@ -422,9 +422,11 @@ void chi2CMB(vector<double>& redshift, vector<double>& DA, double rs, Output &ou
 	gsl_spline_free (DAspline.spline);
 	gsl_interp_accel_free (DAspline.acc);
 
-	// Finally, compute the chi^2 values for WMAP and Planck
+	// Finally, compute the chi^2 values for WMAP
 	double chi2wmap = chi2WMAP(la, R, zCMB);
-	double chi2p = chi2Planck(la, R, zCMB);
+
+	// For Planck, we use the results from 1304.4514v2. Note that this uses Omega_B h^2 instead of zCMB
+	double chi2p = chi2Planck(la, R, params.rhoB());
 
 	// Output everything
     output.printvalue("AcousticScale", la);
@@ -462,24 +464,27 @@ double chi2WMAP (double lA, double R, double z) {
 	return chi2;
 }
 
-// Computes the chi^2 value for the CMB distance posteriors from Planck 1 data
-// See Tables 1 and 2 in http://arxiv.org/pdf/1309.0679v1.pdf
-// Note, we use the LambdaCDM values, as specified for the covariance matrix in the text
-double chi2Planck (double lA, double R, double z) {
+// Computes the chi^2 value for the CMB distance posteriors from Planck 1 data using 1304.4514v2 results
+double chi2Planck (double lA, double R, double omegaB) {
 	// Construct deltas
-	double deltal = lA - 301.77;
-	double deltaR = R - 1.7477;
-	double deltaz = z - 1090.25;
+	double deltal = lA - 301.57;
+	double deltaR = R - 1.7407;
+	double deltaB = omegaB - 0.02228;
+	// Divide the deltas by the standard deviations (we're given a correlation matrix instead of a covariance matrix)
+	deltal /= 0.18;
+	deltaR /= 0.0094;
+	deltaB /= 0.00030;
 
 	double chi2 = 0;
+	// We drop the n_s row/col from the paper's matrix in Eq 13, and invert the matrix to obtain the inverse covariance matrix.
 	// Add contributions from diagonals first
-	chi2 += deltal * deltal * 44.077;
-	chi2 += deltaR * deltaR * 48976.330;
-	chi2 += deltaz * deltaz * 12.592;
+	chi2 += deltal * deltal * 1.39378;
+	chi2 += deltaR * deltaR * 2.19775;
+	chi2 += deltaB * deltaB * 1.93992;
 	// Add contributions from off-diagonal terms next
-	chi2 += - 2 * deltal * deltaR * 383.927;
-	chi2 += - 2 * deltal * deltaz * 1.941;
-	chi2 += - 2 * deltaR * deltaz * 630.791;
+	chi2 += - 2 * deltal * deltaR * 0.620578;
+	chi2 +=   2 * deltal * deltaB * 0.160517;
+	chi2 +=   2 * deltaR * deltaB * 1.25913;
 
 	// Return the result
 	return chi2;
