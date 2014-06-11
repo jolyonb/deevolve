@@ -55,6 +55,6 @@ double chi2hubble(Parameters &params, double desired, double sigma, Output &outp
 
 // Routines to compute chi^2 for WMAP and Planck distance posteriors
 double chi2WMAP (double lA, double R, double z);
-double chi2Planck (double lA, double R, double z);
+double chi2Planck (double lA, double R, double omegaB);
 
 #endif /* PROCESS_H_ */
