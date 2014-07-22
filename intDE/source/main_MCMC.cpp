@@ -22,7 +22,7 @@
 using namespace std;
 
 double ComputeLikelihood(IniReader& inifile, Print2Memory& output, string *names, string *sections, double *parameters, int numparams, bool usingSN1a, vector<vector<double> > &SN1adata);
-void GetProposedParameters(double *priors, double *current, double *proposed, int numparams);
+void GetProposedParameters(double *priors, double *current, double *proposed, bool *logs, int numparams);
 
 // Our program entry point
 int main(int argc, char* argv[]) {
@@ -118,17 +118,34 @@ int main(int argc, char* argv[]) {
     string line;
 	priorsin.open(priorsfile.c_str());
 	vector<PARAMPRIORS> spriors;
+	string dummy;
 	if(priorsin){
 		while(!priorsin.eof()){
 		    // Extract the line
 		    getline(priorsin, line);
 		    // Check whether the line is a comment
 		    if (line[0] != '#' && line.length() > 0) {
-                // Convert the string into a stringstream for extraction
-                stringstream stream(line);
-                PARAMPRIORS temp;
-                stream >> temp.section >> temp.name >> temp.lower >> temp.upper >> temp.sigma;
-                spriors.push_back(temp);
+		        if (line[0] == 'L' && line[1] == ' ') {
+		            // Log parameter
+                    // Convert the string into a stringstream for extraction
+                    stringstream stream(line);
+                    PARAMPRIORS temp;
+                    stream >> dummy >> temp.section >> temp.name >> temp.lower >> temp.upper >> temp.sigma;
+                    temp.logparam = true;
+                    // Make sure that the upper and lower bounds are positive
+                    if (temp.upper < 0 or temp.lower < 0) {
+                        cout << "Error: bounds for " << temp.name << " must be positive in order to investigate parameter in log space. Terminating." << endl;
+                        return -1;
+                    }
+                    spriors.push_back(temp);
+		        } else {
+                    // Convert the string into a stringstream for extraction
+                    stringstream stream(line);
+                    PARAMPRIORS temp;
+                    stream >> temp.section >> temp.name >> temp.lower >> temp.upper >> temp.sigma;
+                    temp.logparam = false;
+                    spriors.push_back(temp);
+		        }
 		    }
 		}
 		priorsin.close();
@@ -139,9 +156,11 @@ int main(int argc, char* argv[]) {
 	
 	// Report priors info to screen
 	cout << "The priors are:" << endl;
-	for(int n = 0; n < numparams; n++)
+	for(int n = 0; n < numparams; n++) {
+	    if (spriors[n].logparam) cout << "Log10 ";
 		cout << spriors[n].section << " " << spriors[n].name
 			 << " :: " << spriors[n].lower << "\t" << spriors[n].upper << "\t" << spriors[n].sigma << endl;
+	}
 	
 	// Initialize containers to store various parameters
 	// Current values of the parameters
@@ -154,11 +173,14 @@ int main(int argc, char* argv[]) {
 	string *names = new string[numparams];
 	// Sections that the parameters are in
 	string *sections = new string[numparams];	
+    // Whether or not parameters are logarithmic
+    bool *logs = new bool[numparams];
 	
 	// Populate prior array from input prior struct
 	for(int n = 0; n < numparams; n++){
 		names[n] = spriors[n].name;
 		sections[n] = spriors[n].section;
+		logs[n] = spriors[n].logparam;
 		// priors contains the lower, upper, and sigma values
 		priors[n] = spriors[n].lower;
 		priors[n + numparams] = spriors[n].upper;
@@ -217,9 +239,11 @@ int main(int argc, char* argv[]) {
         if ((bitmask & 32) > 0) MCMCchainfile << "# Planck distance posteriors" << endl;
         // Print the priors
         MCMCchainfile << "# Priors:" << endl;
-        for(int n = 0; n < numparams; n++)
-            MCMCchainfile << "#\t" << spriors[n].section << "\t" << spriors[n].name
-                 << "\t" << spriors[n].lower << "\t" << spriors[n].upper << "\t" << spriors[n].sigma << endl;
+        for(int n = 0; n < numparams; n++) {
+            MCMCchainfile << "#\t" << spriors[n].section << "\t";
+            if (spriors[n].logparam) MCMCchainfile << "Log10 ";
+            MCMCchainfile << spriors[n].name << "\t" << spriors[n].lower << "\t" << spriors[n].upper << "\t" << spriors[n].sigma << endl;
+        }
         MCMCchainfile << "# ";
         for(int n = 0; n < numparams; n++)
             MCMCchainfile << spriors[n].name << "\t";
@@ -251,7 +275,7 @@ int main(int argc, char* argv[]) {
             MCMCstep++;
 
 			// Get some proposed parameters
-			GetProposedParameters(priors, current, proposed, numparams);
+			GetProposedParameters(priors, current, proposed, logs, numparams);
 			// Get the value of the likelihood with these proposed parameters		
 			L_proposed = ComputeLikelihood(inifile, myOutput, names, sections, proposed, numparams, usingSN1a, SN1adata);
 			// Compute likelihood ratio	
@@ -267,8 +291,13 @@ int main(int argc, char* argv[]) {
 		
 			// Dump to file after burn-in
 			if(MCMCstep > MCMCburninsteps){
-                for(int n = 0; n < numparams; n++)
-                    MCMCchainfile << current[n] << "\t";
+                for(int n = 0; n < numparams; n++) {
+                    if (!spriors[n].logparam) {
+                        MCMCchainfile << current[n] << "\t";
+                    } else {
+                        MCMCchainfile << log10(current[n]) << "\t";
+                    }
+                }
                 MCMCchainfile << L_current << endl;
 			}
 			else{
@@ -311,6 +340,7 @@ int main(int argc, char* argv[]) {
 	delete current;
 	delete proposed;
 	delete priors;
+	delete logs;
 
     // Stop timing
     myTimer.stop();
@@ -358,7 +388,7 @@ double ComputeLikelihood(IniReader& inifile, Print2Memory& output, string *names
  
 
 // Proposes a new point in parameterspace to jump to
-void GetProposedParameters(double *priors, double *current, double *proposed, int numparams){
+void GetProposedParameters(double *priors, double *current, double *proposed, bool *logs, int numparams){
 	
 	// Get the upper and lower bounds, and sigma on the prior for this parameter
 	double upper, lower, sigma;
@@ -366,6 +396,8 @@ void GetProposedParameters(double *priors, double *current, double *proposed, in
 	double prop;
 	// Holding variable of the current parameter value
 	double thisval;
+	// Is this a log parameter
+	bool logparam;
 	// Loop over all parameters
 	for(int param = 0; param <  numparams; param++){
 		
@@ -373,13 +405,18 @@ void GetProposedParameters(double *priors, double *current, double *proposed, in
 		lower = priors[param];
 		upper = priors[param + numparams];
 		sigma = priors[param + 2 * numparams];
+		logparam = logs[param];
 
 		// This process may choose parameter values which live outside the prior range,
 		// and so must repeat until a parameter is found which is inside prior range.
 		while( true ){
 			
 			// Jump around to a nearby parameter with normal distribution with the given sigma
-			prop = thisval + NormalRand() * sigma;
+			if (!logparam) {
+			    prop = thisval + NormalRand() * sigma;
+			} else {
+			    prop = thisval * pow(10, NormalRand() * sigma);
+			}
 			
 			// Make sure the proposal is inside the prior range before getting out
 			if(prop <= upper && prop >= lower) break;

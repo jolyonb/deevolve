@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
     std::ofstream outputstream(outputname.c_str());
     if (!outputstream.is_open()) {
         // End gracefully if not
-        cout << "Unable to open file for output." << endl;
+        cout << "Unable to open file for output. Terminating." << endl;
         return -1;
     }
 
@@ -95,8 +95,16 @@ int main(int argc, char* argv[]) {
     double upper1 = inifile.getiniDouble("upper", 1.0, "Sweep");
     int numsteps1 = inifile.getiniDouble("steps", 20, "Sweep");
     if (numsteps1 < 1) numsteps1 = 1;
-    double stepsize1 = (upper1 - lower1) / static_cast<double> (numsteps1);
     double stepper1;
+    double stepsize1 = (upper1 - lower1) / static_cast<double> (numsteps1);
+    bool logsteps1 = inifile.getiniBool("logsteps", false, "Sweep");
+    double ratio1 = 0;
+    if (logsteps1 && (lower1 < 0 || upper1 < 0)) {
+        // Return an error; we can't take logs of negative parameter values
+        cout << "Error: when using log steps, cannot have negative parameter bounds. Terminating." << endl;
+        return -1;
+    }
+    if (logsteps1) ratio1 = log10(upper1 / lower1) / numsteps1;
 
     // Second parameter
     string section2 = inifile.getiniString("sectionb", "Cosmology", "Sweep");
@@ -107,10 +115,27 @@ int main(int argc, char* argv[]) {
     if (numsteps2 < 1) numsteps2 = 1;
     double stepsize2 = (upper2 - lower2) / static_cast<double> (numsteps2);
     double stepper2;
+    bool logsteps2 = inifile.getiniBool("logstepsb", false, "Sweep");
+    double ratio2 = 0;
+    if (logsteps2 && (lower2 < 0 || upper2 < 0)) {
+        // Return an error; we can't take logs of negative parameter values
+        cout << "Error: when using log steps, cannot have negative parameter bounds. Terminating." << endl;
+        return -1;
+    }
+    if (logsteps2) ratio2 = log10(upper2 / lower2) / numsteps2;
 
     // Report what we're doing to screen
-    cout << "Sweeping over " << param1 << " from " << lower1 << " to " << upper1 << " in " << numsteps1 << " steps." << endl;
-    if (numparams ==2) cout << "Sweeping over " << param2 << " from " << lower2 << " to " << upper2 << " in " << numsteps2 << " steps." << endl;
+    if (logsteps1)
+        cout << "Sweeping over " << param1 << " from " << lower1 << " to " << upper1 << " in " << numsteps1 << " log steps." << endl;
+    else
+        cout << "Sweeping over " << param1 << " from " << lower1 << " to " << upper1 << " in " << numsteps1 << " steps." << endl;
+    if (numparams == 2) {
+        if (logsteps2)
+            cout << "Sweeping over " << param2 << " from " << lower2 << " to " << upper2 << " in " << numsteps2 << " log steps." << endl;
+        else
+            cout << "Sweeping over " << param2 << " from " << lower2 << " to " << upper2 << " in " << numsteps2 << " steps." << endl;
+    }
+
     // Note that we increase the number of steps by one, as this is the number of samples that we'll actually be doing
     numsteps1++;
     numsteps2++;
@@ -149,15 +174,26 @@ int main(int argc, char* argv[]) {
     // Second parameter first (only runs through once if not being used)
     for (int i2 = 0; i2 < numsteps2; i2++) {
         // If we are doing a two parameter scan, update the second parameter here
-        stepper2 = lower2 + stepsize2 * i2;
-        if (numparams == 2)
-            inifile.setparam(param2, section2, stepper2);
+        if (numparams == 2) {
+            if (!logsteps2) {
+                stepper2 = lower2 + stepsize2 * i2;
+                inifile.setparam(param2, section2, stepper2);
+            } else {
+                stepper2 = lower2 * pow(10, ratio2 * i2);
+                inifile.setparam(param2, section2, log10(stepper2));
+            }
+        }
 
         // First parameter next
         for (int i1 = 0; i1 < numsteps1; i1++) {
             // Update the first parameter here
-            stepper1 = lower1 + stepsize1 * i1;
-            inifile.setparam(param1, section1, stepper1);
+            if (!logsteps1) {
+                stepper1 = lower1 + stepsize1 * i1;
+                inifile.setparam(param1, section1, stepper1);
+            } else {
+                stepper1 = lower1 * pow(10, ratio1 * i1);
+                inifile.setparam(param1, section1, log10(stepper1));
+            }
 
             // Set up the cosmological parameters (done here in case something significant changed in the sweeping)
             Parameters myParams(inifile);
@@ -252,7 +288,6 @@ int main(int argc, char* argv[]) {
 				outputstream << endl;
 		
         outputstream << parameter1[i];
-		
         if (numparams == 2) outputstream << "\t" << parameter2[i];
         for (int j = 0; j < numchisqds; j++)
             outputstream << "\t" << likelihoods[i].data[j];

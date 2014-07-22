@@ -42,6 +42,7 @@ struct PARAMPRIORS{
     double lower;
     double upper;
     double sigma;
+    bool logparam;
 };
 
 
