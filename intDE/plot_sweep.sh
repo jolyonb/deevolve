@@ -1,16 +1,40 @@
 #!/bin/sh
 
+####################################################
+#
+# Plot script: plot the sweep
+#
+#   J. Bloomfield (MIT) & J. Pearson (Durham)
+#	(begun) March 2014
+#
+####################################################
+#
+# USAGE
+#
+# EXAMPLE
+#
+# NOTES
+#
+####################################################
+
 
 outdir=logs
 plotdir=plots
 # Whats the plot going to be called?
 plotname=plot_$1
 
+
+# Parameter #1 column number
 p1=1
+# Parameter #2 column number
 p2=2
+# WMAP likelihood column number
 WL=3
+# Planck likelihood column number
 PL=4
+# Supernovae likelihood column number
 SL=5
+# Combined likelihood column number
 CL=9
 
 ################################################

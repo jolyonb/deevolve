@@ -1,198 +1,209 @@
 function getlike(varargin)
+
     close all;
+    % Where will the plots be stored?
     plotdir = 'plots/';
+    % Whats the name of the priors file?
     PriorsFileName = 'priors.txt';
-    ploteachchain = 1;
-    nbins = 40;
+    % Should we plot the surface?
+    plotsurf = false;
+    % Should we plot contours?
+    plotcontours = true;
+    % Should we plot a random selection of the samples?
+    plotsamples = true;
+    % How many of the random samples should we plot?
+    nrandsamples = 500;
+    % How many bins?
+    nbins = 45;
+    
+    contourlinewidth = 3;
+    % Smoothing parameter for 1D likelihood
+    smoothparam_1D = 5;
+    % Smoothing parameter for 2D likelihood
+    smoothparam_2D = 4;
+    % Set the maximum number of iterations the smoother will perform
+    smoothiternumbs = 500;
+    
+    sigma1 = (1-0.6827);
+    sigma2 = (1-0.9545);
+    sigma3 = (1-0.9973);
+    
     
     RunDirID = char(varargin);
     RunDir = strcat('../chains/',RunDirID,'/');
     RunDirContents = dir(fullfile(RunDir,'*chain*'));
     dims = size(RunDirContents);
     nchains = dims(1);
-    
    
     priorsinfo = fopen(strcat(RunDir,PriorsFileName));
     C = textscan(priorsinfo, '%s %s %f %f %f', 'CommentStyle', '#');
-    %C = textscan(fid, '%s', 'Delimiter', '\n', 'CommentStyle', '#');
     fclose(priorsinfo);
     paramsectn = C{:,1};
     paramnames = C{:,2};
     paramlower = C{:,3};
     paramupper = C{:,4};
-    paramsigma = C{:,4};
+    paramsigma = C{:,5};
     nparams = numel(paramnames);
     
-    % setup spacing on the bins
-    for p = 1:nparams
-        min = paramlower(p);
-        max = paramupper(p);
-        dp = (max - min)/nbins;
-        for b = 1:nbins
-            val(p,b) = min+b*dp;
-        end;
-    end;
-   
+    % Setup some formatting stuff
     formatspec = '%f';
     for p=1:nparams
         formatspec = strcat('%f',formatspec);
+        if strcmp(paramnames(p), 'wnaught')
+            rep = '$w_0$';
+            paramnames(p) = regexprep(paramnames(p),'wnaught',rep);
+        end;
+        if strcmp(paramnames(p), 'wa')
+            rep = '$w_a$';
+            paramnames(p) = regexprep(paramnames(p),'wa',rep);
+        end;
+        if strcmp(paramnames(p), 'Omegamh2')
+            rep = '$\\Omega_{\\rm m} h^2$';
+            paramnames(p) = regexprep(paramnames(p),'Omegamh2',rep);
+        end;
+         if strcmp(paramnames(p), 'Omegabh2')
+            rep = '$\\Omega_{\\rm b} h^2$';
+            paramnames(p) = regexprep(paramnames(p),'Omegabh2',rep);
+        end;
+        if strcmp(paramnames(p), 'Omegakh2')
+            rep = '$\\Omega_{\\rm k} h^2$';
+            paramnames(p) = regexprep(paramnames(p),'Omegakh2',rep);
+        end;
+        
     end;
    
     
+   % Now open up the chains to compute bins etc
+    
     for n = 1:nchains
         
+        % Feed back some progress info to screen
+        fprintf('chain # %i of %i\n',n, nchains);
+        
+        % Open up this chain
         chainfilename = strcat(RunDir,RunDirContents(n).name);
         chainfile = fopen(chainfilename);
         chaindata = textscan(chainfile,formatspec,'CommentStyle', '#');
         fclose(chainfile);
         chaindata = cell2mat(chaindata);
         
+        % Get some important dimensions info
         chaindims = size(chaindata);
         nsamples = chaindims(1)-1;
         nparams = chaindims(2)-1;
         chainID = 1E4+n-1;
         
-        % Get the likelihoods
-        likedata = chaindata(:,nparams+1);
-        
-        % zero the bins
-        for p=1:nparams
-            for b=1:nbins
-                bin(p,b)=0;
-            end;
-        end;
-        
-        % Get all parameters
+        plotnumber = 1;
+        skip = 0;
+        % Get the samples of parameters
         for p1=1:nparams
+            
+            % Uncomment this to find out which parameter is being looked at
+            %fprintf('%s\n',char(paramnames(p1)))
             
             % Get the samples data
             param1sample=chaindata(:,p1);
+            % Construct a histogram of this parameter
+            [bindata1,w] = hist(param1sample,nbins);
+            % Smoothe the bins
+            smdat1 = smoothn(bindata1,smoothparam_1D);
+            % Plot
+            subplot(nparams,nparams,plotnumber);
+            plot(w,smdat1);
+            set(gca, 'YTick', []);
+            xlabel(char(paramnames(p1)), 'Interpreter','Latex');
             
-            for s=1:nsamples
-                for b=1:nbins
-                    if param1sample(s) >= val(p1,b) & param1sample(s) < val(p1,b+1)
-                        bin(p1,b)=bin(p1,b)+1;
-                    end;
-                end;
-            end;
-            % If desired, plot the 1D likelihood from each chain
-            if ploteachchain == 1
-                plot(val(p1,:),bin(p1,:));
-                xlim([paramlower(p1) paramupper(p1)]);
-                xlabel(char(paramnames(p1)));
-                set(gca, 'YTick', []);
-                outfile = strcat(plotdir,'chain_',num2str(chainID), '_',char(paramnames(p1)),'.eps');
-                set(gcf, 'PaperUnits','inches');
-                set(gcf, 'PaperPosition',[ 0 0 4 4]);
-                print('-depsc2',outfile);
-            end;
+            plotnumber=plotnumber+1;
             
             for p2=p1+1:nparams
-                 param2sample=chaindata(:,p2);
-                 for b1=1:nbins
-                     for b2=1:nbins
-                         bin2d(b1,b2)=0;
-                     end;
-                 end;
-                 for s=1:nsamples
-                     for b1=1:nbins
-                         for b2=1:nbins
-                             if param1sample(s) >= val(p1,b1) & param1sample(s) < val(p1,b1+1) & param2sample(s) >= val(p2,b2) & param2sample(s) < val(p2,b2+1)
-                                bin2d(b1,b2)=bin2d(b1,b2)+1;
-                             end;
-                         end;
-                     end;
-                 end;
-                 if ploteachchain == 1
-                     pcolor(val(p1,:),val(p2,:),bin2d);
-                     xlim([paramlower(p1) paramupper(p1)]);
-                     ylim([paramlower(p2) paramupper(p2)]);
-                     xlabel(char(paramnames(p1)));
-                     ylabel(char(paramnames(p2)));
-                     outfile = strcat(plotdir,'surf_',num2str(chainID), '_',char(paramnames(p1)), '_',char(paramnames(p2)),'.eps');
-                     set(gcf, 'PaperUnits','inches');
-                     set(gcf, 'PaperPosition',[ 0 0 4 4]);
-                     print('-depsc2',outfile);
+                  
+                 % Get the samples for this parameter
+                 param2sample=chaindata(:,p2);   
+                 
+                 % Kick off the subplot for this 2D likelihood plot
+                 subplot(nparams,nparams,plotnumber);
+                 
+                 % Construct a 2D data array
+                 DATA = [param1sample, param2sample];
+                 
+                 % Obtain smoothed histogram of the 2D data
+                 [H,X,Y] = smoothhist2D(DATA, smoothparam_2D, [nbins nbins]);
+                 colormap jet;
+                 
+                 if plotsurf
+                    hold on;
                  end;
                  
+                 % Plot contours
+                 if plotcontours
+                    maxbin = max(max(H));  
+                    contour(X,Y,H,sigma1*maxbin,'LineWidth',contourlinewidth,'Linecolor','k');
+                    hold on;
+                    contour(X,Y,H,sigma2*maxbin,'LineWidth',contourlinewidth,'Linecolor','k','linestyle',':');
+                    hold on;
+                    
+                 end;
+                 
+                 %  Plot (randomly) from the samples
+                 if plotsamples
+                     freezeColors;
+                     % First, shuffle the rows randomly;
+                     shuffsamps = randperm(nsamples);
+                     % Create array from the "top" howmanys of the shuffled
+                     % samples
+                     randsamps = chaindata(shuffsamps(1:nrandsamples),:);
+                     % Create array holding all of the randomly sampled
+                     % parameters of type "p1"
+                     Xrs = randsamps(:,p1);
+                     % and of type "p2"
+                     Yrs = randsamps(:,p2);
+                     % Get the normalised likelihoods
+                     randlike = randsamps(:,nparams+1) / sum(randsamps(:,nparams+1));
+                     % Set the size of the points
+                     S = 1;
+                     % Get the color of the point based on the value of the
+                     % likelihood
+                     C = randlike;
+                     % Plot in scatter diagram
+                     
+                     scatter(Xrs,Yrs,S,C,'fill');
+                     colormap autumn;
+                     % Flip the colormap
+                     colormap(flipud(colormap))
+                     freezeColors;
+                     hold on;
+                     
+                 end;
+                 
+                 
+                 
+                 % Set the limits on the plot; inherit from the smoothed
+                 % histogram
+                 xlim([min(X) max(X)]);
+                 ylim([min(Y) max(Y)]);
+                 
+                  % Put the x & y labels on
+                 xlabel(char(paramnames(p1)), 'Interpreter','Latex');
+                 ylabel(char(paramnames(p2)), 'Interpreter','Latex');
+                 
+                 hold off;
+                 % Increment plotnumber counter
+                 plotnumber = plotnumber+1;
+                 
             end;
+            skip = skip+1;
+            plotnumber = plotnumber + skip;
             
         end; % finish looking at all parameters
         
-      
-
-        
-    end; % finish reading in all the chains
-    
-    
-    %%% make triangle plot
-    for n = 1:nchains
-        
-        chainfilename = strcat(RunDir,RunDirContents(n).name);
-        chainfile = fopen(chainfilename);
-        chaindata = textscan(chainfile,formatspec,'CommentStyle', '#');
-        fclose(chainfile);
-        chaindata = cell2mat(chaindata);
-        
-        chaindims = size(chaindata);
-        nsamples = chaindims(1)-1;
-        nparams = chaindims(2)-1;
-        chainID = 1E4+n-1;
-        
-        % Get the likelihoods
-        likedata = chaindata(:,nparams+1);
-        
-        
-        % Get all parameters
-        n=1;
-        skip =0;
-        for p1=1:nparams
-            
-            % Get the samples data
-            param1sample=chaindata(:,p1);
-            for p2=p1+1:nparams
-                
-                 param2sample=chaindata(:,p2);
-                 for b1=1:nbins
-                     for b2=1:nbins
-                         bin2d(b1,b2)=0;
-                     end;
-                 end;
-                 for s=1:nsamples
-                     for b1=1:nbins
-                         for b2=1:nbins
-                             if param1sample(s) >= val(p1,b1) & param1sample(s) < val(p1,b1+1) & param2sample(s) >= val(p2,b2) & param2sample(s) < val(p2,b2+1)
-                                bin2d(b1,b2)=bin2d(b1,b2)+1;
-                             end;
-                         end;
-                     end;
-                 end;
-                 
-                 subplot(nparams-1,nparams-1,n);
-                 n=n+1;
-                 
-                 pcolor(val(p1,:),val(p2,:),bin2d);
-                 xlim([paramlower(p1) paramupper(p1)]);
-                 ylim([paramlower(p2) paramupper(p2)]);
-                 xlabel(char(paramnames(p1)));
-                 ylabel(char(paramnames(p2)));
-                 
-                 
-            end;
-            skip=skip+1;
-            n=n+skip;
-        end; % finish looking at all parameters
-        
-        
-        outfile = strcat(plotdir,'tri_',num2str(chainID),'.eps');
+        % Create plot
+        outfile = strcat(plotdir,'tri_',RunDirID,'_',num2str(chainID),'.eps');
         set(gcf, 'PaperUnits','inches');
-        set(gcf, 'PaperPosition',[ 0 0 32 32]);
+        set(gcf, 'PaperPosition',[ 0 0 15 15]);
         print('-depsc2',outfile);
-
         
     end; % finish reading in all the chains
     
-    
-    
-    
+    % Print a final message
+    fprintf('Done\n');
     

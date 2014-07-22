@@ -4,19 +4,24 @@
 #
 # Plot script: w(a), Omega_i(a), H(a), a(\tau)
 #
-#   J. Pearson, Durham, March 2014
+#   J. Bloomfield (MIT) & J. Pearson (Durham)
+#	(begun) March 2014
 #
 ####################################################
 #
 # USAGE
 #
 # To run for first time, need to change permissions
-#  chmod +x plot-w-Om.sh
+#  chmod +x plot_run.sh
 #
 # To run normally, call with dir & fileID as arguments
 #   (note: dont need forward-slash on dir argument)
 #
-#  ./plot-w-Om.sh DIR FILEID
+#  ./plot_run.sh DIR FILEID
+#
+# EXAMPLE
+#
+#	./plot_run.sh out 0001
 #
 # NOTES
 #
@@ -25,6 +30,8 @@
 #  - i.e. in same dir, with same fileID prefix
 #
 ####################################################
+
+
 echo "Start plotting"
 gnuplot << EOF
 
@@ -36,7 +43,7 @@ inputdata="$1/run$2.dat"
 # OUTPUT IMAGE FILE
 outputfig="$1/run$2_plot.eps"
 
-# Change column numbers here...
+# Specify column number of each quantity in the data file
 tau_loc=1
 a_loc=2
 H_loc=4
@@ -47,7 +54,6 @@ wtot_loc=13
 wde_loc=16
 
 # y-axis limits, for w_i & \Omega_i
-
 wmin = -1.1
 wmax = 1.1
 Omin = -0.01
